@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>LÁREZ MEMO</title>
+
+<!-- ═══════════════════════════════════════════════════
+     FIREBASE — Lárez Memo
+     LuAn System™ · Ing. Luis Lárez
+     ═══════════════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp }         from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import { getAuth, signInAnonymously, onAuthStateChanged }
+                                  from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { getFirestore, collection, doc, setDoc, getDocs,
+         deleteDoc, onSnapshot, enableIndexedDbPersistence }
+                                  from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+// ── CONFIGURACIÓN FIREBASE ──────────────────────────────
+// INSTRUCCIÓN: Reemplaza estos valores con los de tu
+// proyecto Firebase en console.firebase.google.com
+// Proyecto sugerido: larez-memo
+const firebaseConfig = {
+  apiKey:            "AIzaSyDnsEK9zHgV6wptVrrRO9f5pFGPykUucuA",
+authDomain:        "quinielas-app-251307.firebaseapp.com",
+projectId:         "quinielas-app-251307",
+storageBucket:     "quinielas-app-251307.firebasestorage.app",
+messagingSenderId: "806028304077",
+appId:             "1:806028304077:web:fe87d59cfa4f98197b9384"
+};
+
+const fbApp  = initializeApp(firebaseConfig);
+const auth   = getAuth(fbApp);
+const db     = getFirestore(fbApp);
+
+// Cache offline — funciona sin internet
+enableIndexedDbPersistence(db).catch(()=>{});
+
+// Exponer globalmente
+window._fb    = { auth, db, collection, doc, setDoc, getDocs, deleteDoc, onSnapshot };
+window._fbUID = null;
+
+// Login anónimo automático — el usuario no ve ningún login
+// Cada dispositivo recibe un UID único automáticamente
+signInAnonymously(auth).catch(e => console.log('Auth offline, usando localStorage'));
+
+onAuthStateChanged(auth, user => {
+  if(user) {
+    window._fbUID = user.uid;
+    localStorage.setItem('lm_uid', user.uid);
+    window._fbReady = true;
+    if(window._appWaiting) window.app.sincronizarConNube();
+  }
+});
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+:root{--font-display:'Syne',sans-serif;--font-body:'Inter',sans-serif;--radius:16px;--radius-sm:10px;--radius-xs:7px;--shadow:0 4px 24px rgba(0,0,0,.12);--transition:.2s cubic-bezier(.4,0,.2,1);}
+body.light{--bg:#f5f3ee;--bg2:#eceae4;--surface:#fff;--surface2:#f9f7f4;--border:#e0ddd6;--text:#1a1814;--text2:#6b6760;--text3:#a8a49e;--accent:#c8521a;--accent-bg:#fdf0e8;--accent2:#2d6a4f;--nav:#1a1814;--nav-text:#f5f3ee;--search-bg:#fff;--card-hover:#f0ede6;}
+body.dark{--bg:#0d0d0d;--bg2:#141414;--surface:#1a1a1a;--surface2:#202020;--border:#2a2a2a;--text:#f0ede6;--text2:#8a8580;--text3:#4a4740;--accent:#e8693a;--accent-bg:#2a1508;--accent2:#4ade80;--nav:#0d0d0d;--nav-text:#f0ede6;--search-bg:#1a1a1a;--card-hover:#222;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;transition:background var(--transition),color var(--transition);overscroll-behavior:none;}
+.navbar{background:var(--nav);color:var(--nav-text);padding:.55rem 1rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(255,255,255,.05);}
+.nav-brand{font-family:var(--font-display);font-size:1.1rem;font-weight:800;letter-spacing:-.5px;color:var(--nav-text);}
+.nav-brand span{color:var(--accent);}
+.nav-actions{display:flex;gap:6px;align-items:center;}
+.nav-btn{background:rgba(255,255,255,.08);border:none;color:var(--nav-text);width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;transition:background var(--transition);}
+.nav-btn:hover{background:rgba(255,255,255,.16);}
+.nav-tag{font-family:var(--font-display);font-size:.6rem;font-weight:700;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;background:var(--accent-bg);padding:2px 7px;border-radius:20px;border:1px solid var(--accent);opacity:.8;}
+.main{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:100px;}
+.search-wrap{padding:.8rem 1rem .5rem;position:sticky;top:49px;z-index:90;background:var(--bg);border-bottom:1px solid var(--border);}
+.search-box{position:relative;display:flex;align-items:center;background:var(--search-bg);border:1.5px solid var(--border);border-radius:50px;padding:0 14px;box-shadow:var(--shadow);transition:border-color var(--transition),box-shadow var(--transition);gap:4px;}
+.search-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg);}
+.search-icon{color:var(--text3);font-size:.9rem;flex-shrink:0;}
+.search-input{flex:1;border:none;background:transparent;color:var(--text);font-family:var(--font-body);font-size:.95rem;padding:11px 6px;outline:none;}
+.search-input::placeholder{color:var(--text3);}
+.search-clear{background:none;border:none;color:var(--text3);cursor:pointer;font-size:.85rem;padding:4px;display:none;}
+.search-clear.show{display:block;}
+.mic-btn{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface2);color:var(--text2);font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all var(--transition);flex-shrink:0;}
+.mic-btn.grabando{background:#dc2626;border-color:#dc2626;color:white;animation:pulsoMic .8s ease-in-out infinite alternate;box-shadow:0 0 0 6px rgba(220,38,38,.2);}
+@keyframes pulsoMic{from{box-shadow:0 0 0 4px rgba(220,38,38,.2);}to{box-shadow:0 0 0 10px rgba(220,38,38,.05);}}
+.mic-status{font-size:.7rem;color:var(--text3);text-align:center;margin-top:3px;min-height:14px;}
+.mic-status.activo{color:#dc2626;font-weight:700;}
+.cats-wrap{padding:.5rem 1rem;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.cats-wrap::-webkit-scrollbar{display:none;}
+.cat-chip{display:flex;align-items:center;gap:4px;padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:.75rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all var(--transition);font-family:var(--font-body);flex-shrink:0;}
+.cat-chip:active{transform:scale(.94);}
+.cat-chip.active{background:var(--accent);border-color:var(--accent);color:white;}
+.notas-list{padding:.5rem 1rem 0;}
+.fecha-label{font-family:var(--font-display);font-size:.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin:1rem 0 .4rem;}
+.nota-card{background:var(--surface);border-radius:var(--radius);padding:.85rem 1rem;margin-bottom:.5rem;border:1px solid var(--border);cursor:pointer;transition:all var(--transition);position:relative;overflow:hidden;}
+.nota-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cat-color,var(--accent));border-radius:3px 0 0 3px;}
+.nota-card:hover,.nota-card:active{background:var(--card-hover);transform:translateX(2px);}
+.nota-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px;}
+.nota-cat-icon{font-size:1rem;flex-shrink:0;margin-top:1px;}
+.nota-titulo{font-family:var(--font-display);font-size:.88rem;font-weight:700;color:var(--text);flex:1;line-height:1.3;}
+.nota-titulo mark{background:var(--accent-bg);color:var(--accent);border-radius:3px;padding:0 2px;}
+.nota-hora{font-size:.65rem;color:var(--text3);flex-shrink:0;margin-top:2px;}
+.nota-detalle{font-size:.8rem;color:var(--text2);line-height:1.5;margin-left:1.6rem;margin-top:2px;}
+.nota-detalle mark{background:var(--accent-bg);color:var(--accent);border-radius:3px;padding:0 2px;}
+.nota-fuzzy-badge{font-size:.62rem;background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:1px 6px;font-weight:700;margin-left:4px;vertical-align:middle;}
+.empty-state{text-align:center;padding:60px 30px;color:var(--text3);}
+.empty-icon{font-size:3rem;margin-bottom:12px;opacity:.4;}
+.empty-title{font-family:var(--font-display);font-size:.95rem;font-weight:700;color:var(--text2);margin-bottom:6px;}
+.empty-sub{font-size:.8rem;line-height:1.5;}
+.fab{position:fixed;bottom:24px;right:20px;width:58px;height:58px;background:var(--accent);color:white;border:none;border-radius:50%;font-size:1.6rem;cursor:pointer;box-shadow:0 4px 20px rgba(200,82,26,.4);display:flex;align-items:center;justify-content:center;z-index:200;transition:all var(--transition);}
+.fab:hover{transform:scale(1.08);}
+.fab:active{transform:scale(.94);}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
+.overlay.open{display:flex;}
+.sheet{background:var(--surface);border-radius:24px 24px 0 0;padding:1.2rem 1rem 2rem;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;animation:slideUp .25s cubic-bezier(.4,0,.2,1);border-top:2px solid var(--accent);}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 1rem;}
+.sheet-title{font-family:var(--font-display);font-size:1rem;font-weight:800;color:var(--text);margin-bottom:1rem;}
+.form-label{font-size:.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;display:block;}
+.form-input,.form-textarea{width:100%;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font-body);font-size:.92rem;padding:10px 12px;outline:none;transition:border-color var(--transition);resize:none;}
+.form-input:focus,.form-textarea:focus{border-color:var(--accent);}
+.form-group{margin-bottom:.9rem;}
+.form-row{display:flex;gap:8px;align-items:flex-start;}
+.form-row .form-input,.form-row .form-textarea{flex:1;}
+.cats-picker{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:.9rem;}
+.cat-pick{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--bg2);cursor:pointer;transition:all var(--transition);font-family:var(--font-body);}
+.cat-pick .ci{font-size:1.3rem;}
+.cat-pick .cl{font-size:.6rem;font-weight:700;color:var(--text2);text-align:center;}
+.cat-pick.selected{border-color:var(--cat-color,var(--accent));background:var(--accent-bg);}
+.ml-sug{display:none;align-items:center;gap:6px;background:var(--accent-bg);border:1px solid var(--accent);border-radius:var(--radius-xs);padding:6px 10px;margin-bottom:.7rem;font-size:.75rem;color:var(--accent);font-weight:600;}
+.ml-sug.show{display:flex;}
+.ml-sug-btn{margin-left:auto;background:var(--accent);color:white;border:none;border-radius:20px;padding:3px 10px;font-size:.7rem;font-weight:700;cursor:pointer;}
+.ml-correccion{display:none;background:var(--surface2);border:1.5px solid var(--accent);border-radius:var(--radius-sm);padding:10px 12px;margin-top:6px;font-size:.8rem;}
+.ml-correccion.show{display:block;}
+.ml-corr-titulo{font-size:.68rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.ml-corr-item{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);}
+.ml-corr-item:last-child{border-bottom:none;}
+.ml-corr-error{color:#dc2626;text-decoration:line-through;font-size:.8rem;}
+.ml-corr-arrow{color:var(--text3);}
+.ml-corr-correcto{color:var(--accent2);font-weight:700;font-size:.8rem;}
+.ml-corr-btn{margin-left:auto;background:var(--accent);color:white;border:none;border-radius:20px;padding:3px 9px;font-size:.68rem;font-weight:700;cursor:pointer;white-space:nowrap;}
+.btn-row{display:flex;gap:8px;margin-top:.5rem;}
+.btn{flex:1;padding:12px;border-radius:40px;border:none;font-family:var(--font-display);font-weight:700;font-size:.88rem;cursor:pointer;transition:all var(--transition);}
+.btn:active{transform:scale(.96);}
+.btn-primary{background:var(--accent);color:white;}
+.btn-secondary{background:var(--bg2);color:var(--text2);border:1.5px solid var(--border);}
+.btn-danger{background:#fee2e2;color:#dc2626;}
+.detalle-body{background:var(--bg2);border-radius:var(--radius-sm);padding:12px;font-size:.88rem;color:var(--text);line-height:1.6;margin-bottom:.8rem;white-space:pre-wrap;}
+.detalle-meta{font-size:.72rem;color:var(--text3);margin-bottom:1rem;}
+.detalle-cat{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700;margin-bottom:.8rem;}
+.options-list{display:flex;flex-direction:column;gap:6px;}
+.opt-btn{display:flex;align-items:center;gap:12px;padding:13px 14px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font-body);font-size:.88rem;font-weight:500;cursor:pointer;transition:all var(--transition);text-align:left;width:100%;}
+.opt-btn:hover{background:var(--card-hover);border-color:var(--accent);}
+.opt-icon{font-size:1.2rem;width:28px;text-align:center;}
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:10px 20px;border-radius:40px;font-size:.82rem;font-weight:600;z-index:9999;opacity:0;transition:all .3s;white-space:nowrap;font-family:var(--font-body);pointer-events:none;max-width:90vw;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.ml-mini{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;margin:.5rem 1rem;display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--text2);}
+.ml-dot{width:7px;height:7px;border-radius:50%;background:var(--accent2);flex-shrink:0;box-shadow:0 0 6px var(--accent2);}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+#file-import{display:none;}
+.respaldo-aviso{background:var(--accent-bg);border:1px solid var(--accent);border-radius:var(--radius-sm);padding:9px 12px;margin:.5rem 1rem;font-size:.72rem;color:var(--accent);display:none;align-items:center;gap:8px;}
+.respaldo-aviso.show{display:flex;}
+</style>
+</head>
+<body class="dark">
+
+<nav class="navbar">
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div class="nav-brand">LÁREZ<span>MEMO</span></div>
+    <div class="nav-tag">ML v8</div>
+  </div>
+  <div class="nav-actions">
+    <!-- Indicador nube -->
+    <span id="nube-dot" title="Estado de sincronización"
+      style="font-size:.65rem;padding:2px 7px;border-radius:20px;font-weight:700;
+             background:rgba(255,255,255,.08);color:rgba(255,255,255,.4);">
+      ⏳
+    </span>
+    <button class="nav-btn" onclick="app.toggleTema()" id="btn-tema" title="Cambiar tema">🌙</button>
+    <button class="nav-btn" onclick="app.abrirOpciones()" title="Opciones">⋯</button>
+  </div>
+</nav>
+
+<div class="search-wrap">
+  <div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input type="text" class="search-input" id="buscador"
+      placeholder="Busca en TODAS las notas aunque escribas mal..."
+      oninput="app.buscar(this.value)">
+    <button class="search-clear" id="btn-clear-search" onclick="app.limpiarBusqueda()">✕</button>
+    <button class="mic-btn" id="mic-buscar" onclick="app.toggleMicBuscar()" title="Buscar por voz">🎤</button>
+  </div>
+</div>
+
+<div class="cats-wrap" id="cats-wrap"></div>
+
+<!-- Aviso de respaldo -->
+<div class="respaldo-aviso" id="respaldo-aviso">
+  <span>💾</span>
+  <span id="respaldo-texto">Llevas varios días sin respaldar</span>
+  <button onclick="app.exportarNotas()" style="margin-left:auto;background:var(--accent);color:white;border:none;border-radius:20px;padding:3px 10px;font-size:.68rem;font-weight:700;cursor:pointer;">Exportar ahora</button>
+</div>
+
+<div class="ml-mini" id="ml-mini" style="display:none;">
+  <div class="ml-dot"></div>
+  <span id="ml-mini-txt">Método Lárez activo</span>
+</div>
+
+<div class="main">
+  <div class="notas-list" id="notas-list"></div>
+</div>
+
+<button class="fab" onclick="app.abrirFormNota()" title="Nueva nota">＋</button>
+<div class="toast" id="toast"></div>
+<input type="file" id="file-import" accept=".json" onchange="app.importarArchivo(this)">
+
+<!-- MODAL: NUEVA / EDITAR NOTA -->
+<div class="overlay" id="overlay-nota" onclick="app.cerrarOverlayFondo(event,'overlay-nota')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="form-titulo-modal">✏️ Nueva nota</div>
+    <div class="ml-sug" id="ml-sugerencia">
+      <span>🧠</span>
+      <span id="ml-sug-texto">El ML sugiere categoría</span>
+      <button class="ml-sug-btn" onclick="app.aceptarSugerenciaML()">✓ Aceptar</button>
+    </div>
+    <div style="margin-bottom:.5rem;">
+      <label class="form-label">Categoría</label>
+      <div class="cats-picker" id="cats-picker"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nota <small style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;">(escribe o habla)</small></label>
+      <div class="form-row">
+        <input type="text" class="form-input" id="form-titulo"
+          placeholder="La vaca Mariposa está a punto de parir..."
+          oninput="app.alEscribirTitulo(this.value)" maxlength="200">
+        <button class="mic-btn" id="mic-titulo" onclick="app.toggleMic('titulo')" title="Dictar nota">🎤</button>
+      </div>
+      <div class="mic-status" id="mic-status-titulo"></div>
+      <!-- Panel de correcciones ML -->
+      <div class="ml-correccion" id="ml-correcciones">
+        <div class="ml-corr-titulo">🧠 Método Lárez — posibles correcciones</div>
+        <div id="ml-corr-lista"></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Detalle <small style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;">(opcional)</small></label>
+      <div class="form-row">
+        <textarea class="form-textarea" id="form-detalle"
+          placeholder="Más información, contexto, datos extras..."
+          rows="3" maxlength="1000"></textarea>
+        <button class="mic-btn" id="mic-detalle" onclick="app.toggleMic('detalle')" title="Dictar detalle">🎤</button>
+      </div>
+      <div class="mic-status" id="mic-status-detalle"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="app.cerrarOverlay('overlay-nota')">Cancelar</button>
+      <button class="btn btn-primary" onclick="app.guardarNota()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: DETALLE NOTA -->
+<div class="overlay" id="overlay-detalle" onclick="app.cerrarOverlayFondo(event,'overlay-detalle')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div id="detalle-cat-badge" class="detalle-cat"></div>
+    <div class="sheet-title" id="detalle-titulo"></div>
+    <div class="detalle-body" id="detalle-body" style="display:none;"></div>
+    <div class="detalle-meta" id="detalle-meta"></div>
+    <div class="btn-row">
+      <button class="btn btn-danger" onclick="app.eliminarNota()" style="flex:.6;">🗑️</button>
+      <button class="btn btn-secondary" onclick="app.compartirNota()">📲 WA</button>
+      <button class="btn btn-primary" onclick="app.editarNota()">✏️ Editar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: OPCIONES -->
+<div class="overlay" id="overlay-opciones" onclick="app.cerrarOverlayFondo(event,'overlay-opciones')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">⚙️ Opciones</div>
+    <div class="options-list">
+      <button class="opt-btn" onclick="app.exportarNotas()">
+        <span class="opt-icon">📤</span>
+        <div><div style="font-weight:700;">Exportar respaldo</div>
+        <div style="font-size:.75rem;color:var(--text2);margin-top:2px;">Descarga todas tus notas — guárdalo en WhatsApp o Google Drive</div></div>
+      </button>
+      <button class="opt-btn" onclick="document.getElementById('file-import').click()">
+        <span class="opt-icon">📥</span>
+        <div><div style="font-weight:700;">Importar respaldo</div>
+        <div style="font-size:.75rem;color:var(--text2);margin-top:2px;">Restaura notas desde el archivo exportado</div></div>
+      </button>
+      <button class="opt-btn" onclick="app.toggleTema();app.cerrarOverlay('overlay-opciones')">
+        <span class="opt-icon" id="tema-icon">☀️</span>
+        <div><div style="font-weight:700;" id="tema-label">Cambiar tema</div>
+        <div style="font-size:.75rem;color:var(--text2);margin-top:2px;">Sol y campo → claro · Noche y mar → oscuro</div></div>
+      </button>
+      <button class="opt-btn" onclick="app.limpiarML()">
+        <span class="opt-icon">🧠</span>
+        <div><div style="font-weight:700;">Resetear memoria ML</div>
+        <div style="font-size:.75rem;color:var(--text2);margin-top:2px;">Borra lo que el Método Lárez aprendió de tu escritura</div></div>
+      </button>
+      <div style="padding:12px 14px;border-radius:var(--radius-sm);background:var(--bg2);border:1px solid var(--border);">
+        <div style="font-size:.7rem;color:var(--text3);line-height:1.7;">
+          <strong style="color:var(--accent);font-family:var(--font-display);">LÁREZ MEMO v1</strong><br>
+          Motor: Método Lárez™ v8<br>
+          LuAn System™ · Ing. Luis Lárez<br>
+          Arichuna, Apure, Venezuela<br><br>
+          <strong style="color:var(--text2);">💡 ¿Te robaron el teléfono?</strong><br>
+          Exporta el respaldo periódicamente y guárdalo en WhatsApp o Drive. Al instalar en el nuevo teléfono, importa el archivo y recuperas todo.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ================================================================
+//  LÁREZ MEMO v1 — Motor completo
+//  Método Lárez™ v8 · LuAn System™ · Ing. Luis Lárez
+//  Arichuna, Apure, Venezuela
+// ================================================================
+
+const CATS = [
+  {id:'all',     icon:'📋',label:'Todas',  color:'#8b8680',kw:[]},
+  {id:'persona', icon:'👤',label:'Persona',color:'#3b82f6',kw:['nombre','señor','señora','doña','don','pedro','maría','juan','carlos','jose','luis','persona','cliente','vecino','alumno','estudiante','paciente','señorita','amigo','familiar']},
+  {id:'animal',  icon:'🐄',label:'Animal', color:'#16a34a',kw:['vaca','toro','búfalo','búfala','buey','caballo','yegua','potro','gallina','gallo','cerdo','cochino','cabra','chivo','perro','gato','becerro','ternero','novilla','parir','parto','rebaño','hato','ganado']},
+  {id:'dinero',  icon:'💰',label:'Dinero', color:'#d97706',kw:['debe','deuda','cobrar','pagar','pago','dinero','dólar','bolívar','precio','costo','fiado','abono','préstamo','venta','gasto','plata','billete','cambio','tasa','factura']},
+  {id:'lugar',   icon:'📍',label:'Lugar',  color:'#dc2626',kw:['calle','avenida','carretera','cerca','caño','finca','potrero','corral','casa','oficina','mercado','hospital','escuela','barrio','sector','kilómetro','km','ruta','zona']},
+  {id:'tarea',   icon:'✅',label:'Tarea',  color:'#7c3aed',kw:['llamar','ir','buscar','comprar','arreglar','reparar','revisar','pendiente','hacer','llevar','traer','avisar','recordar','hablar','enviar','mandar','visitar','completar']},
+  {id:'urgente', icon:'⚠️',label:'Urgente',color:'#dc2626',kw:['urgente','emergencia','roto','dañado','herido','enfermo','ayuda','accidente','pronto','hoy','ahora','inmediato','peligro','alerta','critico']},
+  {id:'otro',    icon:'📦',label:'Otro',   color:'#6b7280',kw:[]},
+];
+
+// ── FUZZY LÁREZ ─────────────────────────────────────────────────
+function norm(str){
+  return(str||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
+function lev(a,b){
+  const m=a.length,n=b.length;
+  const dp=Array.from({length:m+1},(_,i)=>[i]);
+  for(let j=0;j<=n;j++)dp[0][j]=j;
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)
+    dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  return dp[m][n];
+}
+function umbral(len){
+  if(len<=3)return 0; if(len<=5)return 0.20; if(len<=7)return 0.28; return 0.35;
+}
+function fuzzyScore(hay,needle){
+  const h=norm(hay),n=norm(needle);
+  if(!n||n.length<2)return null;
+  if(h.includes(n))return 0;
+  const words=h.split(/[\s\-\/,\.]+/);
+  let best=Infinity;
+  for(const w of words){
+    if(w.length<2)continue;
+    if(Math.abs(w.length-n.length)>4)continue;
+    const d=lev(w,n),maxL=Math.max(w.length,n.length);
+    if(d/maxL<=umbral(maxL))best=Math.min(best,d);
+  }
+  if(best===Infinity&&n.length>=3&&h.startsWith(n))return 1;
+  if(best===Infinity&&n.length>=3&&h.endsWith(n))return 2;
+  return best===Infinity?null:best;
+}
+function fuzzyNota(nota,termino){
+  const texto=(nota.titulo||'')+' '+(nota.detalle||'');
+  const pals=termino.split(/\s+/).filter(p=>p.length>=2);
+  if(!pals.length)return{match:true,score:0,fuzzy:false};
+  let total=0,hayFuzzy=false;
+  for(const p of pals){
+    const s=fuzzyScore(texto,p);
+    if(s===null)return{match:false};
+    if(s>0)hayFuzzy=true;
+    total+=s;
+  }
+  return{match:true,score:total,fuzzy:hayFuzzy};
+}
+
+// ── DICCIONARIO ML ───────────────────────────────────────────────
+const ML_DIC={
+  _k:'lm_dic',
+  cargar(){try{return JSON.parse(localStorage.getItem(this._k)||'{}')}catch(e){return{}}},
+  guardar(d){try{localStorage.setItem(this._k,JSON.stringify(d))}catch(e){}},
+  aprender(error,correcto){
+    if(!error||!correcto||norm(error)===norm(correcto))return;
+    const dic=this.cargar(),k=norm(error);
+    dic[k]={correcto,veces:(dic[k]?.veces||0)+1,ts:Date.now()};
+    // Max 300 entradas
+    const ent=Object.entries(dic);
+    if(ent.length>300){ent.sort((a,b)=>(a[1].ts||0)-(b[1].ts||0));delete dic[ent[0][0]];}
+    this.guardar(dic);
+  },
+  consultar(palabra){
+    const k=norm(palabra);
+    const dic=this.cargar();
+    if(dic[k])return dic[k].correcto;
+    // Fuzzy dentro del diccionario
+    for(const[err,data]of Object.entries(dic)){
+      const d=lev(k,err),maxL=Math.max(k.length,err.length);
+      if(maxL>2&&d/maxL<=umbral(maxL)&&d>0)return data.correcto;
+    }
+    return null;
+  },
+  total(){return Object.keys(this.cargar()).length;}
+};
+
+// ── DETECCIÓN DE CATEGORÍA ────────────────────────────────────────
+function detectarCat(texto){
+  const t=norm(texto);
+  if(!t)return null;
+  const scores={};
+  CATS.filter(c=>c.id!=='all'&&c.id!=='otro').forEach(c=>{
+    let pts=0;
+    c.kw.forEach(kw=>{const s=fuzzyScore(t,kw);if(s!==null)pts+=(s===0?3:s<=1?2:1);});
+    if(pts>0)scores[c.id]=pts;
+  });
+  const top=Object.entries(scores).sort((a,b)=>b[1]-a[1])[0];
+  return top&&top[1]>=2?top[0]:null;
+}
+
+// ── APP ───────────────────────────────────────────────────────────
+const app={
+  notas:[],
+  catActiva:'all',
+  termino:'',
+  notaEditandoId:null,
+  notaViendoId:null,
+  catSel:'otro',
+  mlSug:null,
+  tema:'dark',
+  _correcciones:[],
+  _micActivo:false,
+  _micCampo:null,
+  _reconocedor:null,
+  _toastTimer:null,
+
+  init(){
+    this.tema=localStorage.getItem('lm_tema')||'dark';
+    document.body.className=this.tema;
+    this.notas=JSON.parse(localStorage.getItem('lm_notas')||'[]');
+    this.buildCatChips();
+    this.buildCatPicker();
+    this.renderNotas();
+    this.actualizarTemaUI();
+    this.actualizarMLMini();
+    this.verificarRespaldo();
+    // Detector offline
+    this._iniciarDetectorConexion();
+    // Firebase — sincronizar si ya hay UID
+    if(window._fbUID){
+      this.sincronizarConNube();
+    } else {
+      // Firebase aún cargando — sincronizar cuando esté listo
+      window._appWaiting=true;
+      this._actualizarNubeDot('espera');
+      // Timeout fallback — si Firebase tarda >5s, marcar offline
+      setTimeout(()=>{
+        if(!window._fbUID) this._actualizarNubeDot('offline');
+      },5000);
+    }
+  },
+
+  _iniciarDetectorConexion(){
+    const actualizar=()=>{
+      if(!navigator.onLine){
+        this._actualizarNubeDot('offline');
+      }
+    };
+    window.addEventListener('online',()=>{
+      if(window._fbUID) this.sincronizarConNube();
+    });
+    window.addEventListener('offline',()=>this._actualizarNubeDot('offline'));
+    actualizar();
+  },
+
+  // ── TEMA ─────────────────────────────────────────────────────
+  toggleTema(){
+    this.tema=this.tema==='dark'?'light':'dark';
+    document.body.className=this.tema;
+    localStorage.setItem('lm_tema',this.tema);
+    this.actualizarTemaUI();
+  },
+  actualizarTemaUI(){
+    const d=this.tema==='dark';
+    document.getElementById('btn-tema').textContent=d?'☀️':'🌙';
+    document.getElementById('tema-icon').textContent=d?'☀️':'🌙';
+    document.getElementById('tema-label').textContent=d?'Cambiar a tema claro':'Cambiar a tema oscuro';
+  },
+
+  // ── RESPALDO ─────────────────────────────────────────────────
+  verificarRespaldo(){
+    if(!this.notas.length)return;
+    const ultima=parseInt(localStorage.getItem('lm_respaldo_ts')||'0');
+    const dias=Math.floor((Date.now()-ultima)/(864e5));
+    const aviso=document.getElementById('respaldo-aviso');
+    const txt=document.getElementById('respaldo-texto');
+    if(dias>=7||!ultima){
+      aviso.classList.add('show');
+      txt.textContent=ultima
+        ?'Llevas '+dias+' días sin respaldar tus notas'
+        :'Nunca has exportado un respaldo — hazlo ahora';
+    }
+  },
+
+  // ── CATEGORÍAS ───────────────────────────────────────────────
+  buildCatChips(){
+    const wrap=document.getElementById('cats-wrap');
+    wrap.innerHTML=CATS.map(c=>{
+      const act=c.id===this.catActiva;
+      return '<button class="cat-chip'+(act?' active':'')+'"'+
+        (act?' style="background:'+c.color+';border-color:'+c.color+';color:white"':'')+
+        ' onclick="app.setCat(\''+c.id+'\')">'+c.icon+' '+c.label+'</button>';
+    }).join('');
+  },
+  setCat(id){this.catActiva=id;this.buildCatChips();this.renderNotas();},
+  buildCatPicker(){
+    document.getElementById('cats-picker').innerHTML=
+      CATS.filter(c=>c.id!=='all').map(c=>
+        '<div class="cat-pick'+(c.id===this.catSel?' selected':'')+'"'+
+        ' style="--cat-color:'+c.color+'"'+
+        ' onclick="app.selCat(\''+c.id+'\')">' +
+        '<span class="ci">'+c.icon+'</span>'+
+        '<span class="cl">'+c.label+'</span></div>'
+      ).join('');
+  },
+  selCat(id){
+    this.catSel=id;
+    this.buildCatPicker();
+    this.mlSug=null;
+    document.getElementById('ml-sugerencia').classList.remove('show');
+  },
+
+  // ── ML AUTO-DETECT CAT ────────────────────────────────────────
+  alEscribirTitulo(val){
+    this.mlDetectarCat(val);
+    this.mlAnalizarCorrecciones(val);
+  },
+  mlDetectarCat(texto){
+    if(!texto||texto.length<4){
+      document.getElementById('ml-sugerencia').classList.remove('show');
+      this.mlSug=null;return;
+    }
+    const cat=detectarCat(texto);
+    if(cat&&cat!==this.catSel){
+      const c=CATS.find(x=>x.id===cat);
+      this.mlSug=cat;
+      document.getElementById('ml-sug-texto').textContent='🧠 Método Lárez detectó: '+c.icon+' '+c.label;
+      document.getElementById('ml-sugerencia').classList.add('show');
+    } else {
+      document.getElementById('ml-sugerencia').classList.remove('show');
+      this.mlSug=null;
+    }
+  },
+  aceptarSugerenciaML(){
+    if(this.mlSug){this.selCat(this.mlSug);this.mostrarToast('🧠 Categoría aplicada');}
+  },
+
+  // ── CORRECCIONES ML ───────────────────────────────────────────
+  mlAnalizarCorrecciones(texto){
+    const panel=document.getElementById('ml-correcciones');
+    const lista=document.getElementById('ml-corr-lista');
+    if(!texto||texto.length<4){panel.classList.remove('show');return;}
+    const palabras=texto.split(/\s+/).filter(p=>p.length>=3);
+    const correcciones=[];
+    palabras.forEach(pal=>{
+      const correcto=ML_DIC.consultar(pal);
+      if(correcto&&norm(correcto)!==norm(pal)){
+        correcciones.push({error:pal,correcto});
+      }
+    });
+    if(!correcciones.length){panel.classList.remove('show');return;}
+    this._correcciones=correcciones;
+    lista.innerHTML=correcciones.map(function(c,i){
+      return '<div class="ml-corr-item">'+
+        '<span class="ml-corr-error">'+c.error+'</span>'+
+        '<span class="ml-corr-arrow">→</span>'+
+        '<span class="ml-corr-correcto">'+c.correcto+'</span>'+
+        '<button class="ml-corr-btn" onclick="app.aplicarCorreccion('+i+')">✓ Aplicar</button>'+
+        '</div>';
+    }).join('');
+    panel.classList.add('show');
+  },
+  aplicarCorreccion(idx){
+    const c=this._correcciones[idx];
+    if(!c)return;
+    const input=document.getElementById('form-titulo');
+    if(!input)return;
+    const regex=new RegExp(c.error.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
+    input.value=input.value.replace(regex,c.correcto);
+    ML_DIC.aprender(c.error,c.correcto);
+    this.mostrarToast('✅ "'+c.error+'" → "'+c.correcto+'"');
+    this.mlAnalizarCorrecciones(input.value);
+  },
+
+  // ── VOZ ───────────────────────────────────────────────────────
+  _initRec(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR)return null;
+    const r=new SR();
+    r.lang='es-VE';r.continuous=false;r.interimResults=true;r.maxAlternatives=3;
+    return r;
+  },
+  toggleMic(campo){
+    if(this._micActivo&&this._micCampo===campo){this._detenerMic();return;}
+    if(this._micActivo)this._detenerMic();
+    this._micCampo=campo;this._grabarVoz(campo);
+  },
+  toggleMicBuscar(){
+    if(this._micActivo&&this._micCampo==='buscar'){this._detenerMic();return;}
+    if(this._micActivo)this._detenerMic();
+    this._micCampo='buscar';this._grabarVoz('buscar');
+  },
+  _grabarVoz(campo){
+    const rec=this._initRec();
+    if(!rec){this.mostrarToast('⚠️ Tu navegador no soporta voz — usa Chrome');return;}
+    const btnId=campo==='buscar'?'mic-buscar':'mic-'+campo;
+    const stId=campo==='buscar'?null:'mic-status-'+campo;
+    const inId=campo==='buscar'?'buscador':'form-'+campo;
+    const btn=document.getElementById(btnId);
+    const st=stId?document.getElementById(stId):null;
+    const inp=document.getElementById(inId);
+    btn&&btn.classList.add('grabando');
+    if(st){st.textContent='🔴 Escuchando... habla ahora';st.classList.add('activo');}
+    this._micActivo=true;this._reconocedor=rec;
+    rec.onresult=function(e){
+      let final='',interim='';
+      for(let i=e.resultIndex;i<e.results.length;i++){
+        const t=e.results[i][0].transcript;
+        if(e.results[i].isFinal)final+=t;else interim+=t;
+      }
+      if(interim&&inp&&campo==='buscar')inp.value=interim;
+      if(final){
+        if(campo==='buscar'){inp.value=final;app.buscar(final);}
+        else if(campo==='titulo'){
+          const ya=inp.value;inp.value=ya?ya+' '+final:final;
+          app.alEscribirTitulo(inp.value);
+        }else if(campo==='detalle'){
+          const ya=inp.value;inp.value=ya?ya+'\n'+final:final;
+        }
+        if(st)st.textContent='✅ "'+final.substring(0,40)+(final.length>40?'...':'')+'"';
+      }
+    };
+    rec.onerror=function(e){
+      const msgs={'no-speech':'No se escuchó nada','not-allowed':'Permiso denegado — activa el micrófono','network':'Sin internet para reconocimiento','audio-capture':'No se detectó micrófono'};
+      app.mostrarToast('🎤 '+(msgs[e.error]||'Error: '+e.error));
+      app._detenerMic();
+    };
+    rec.onend=function(){app._detenerMic();};
+    try{rec.start();}catch(e){this.mostrarToast('⚠️ Error al iniciar micrófono');this._detenerMic();}
+  },
+  _detenerMic(){
+    try{this._reconocedor&&this._reconocedor.stop();}catch(e){}
+    this._micActivo=false;
+    const btnId=this._micCampo==='buscar'?'mic-buscar':'mic-'+this._micCampo;
+    const stId=this._micCampo==='buscar'?null:'mic-status-'+this._micCampo;
+    const btn=document.getElementById(btnId);
+    const st=stId?document.getElementById(stId):null;
+    btn&&btn.classList.remove('grabando');
+    if(st){st.classList.remove('activo');setTimeout(function(){st.textContent='';},3000);}
+    this._reconocedor=null;this._micCampo=null;
+  },
+
+  // ── GUARDAR NOTA ──────────────────────────────────────────────
+  abrirFormNota(editId){
+    this.notaEditandoId=editId||null;
+    document.getElementById('ml-sugerencia').classList.remove('show');
+    document.getElementById('ml-correcciones').classList.remove('show');
+    this.mlSug=null;this._correcciones=[];
+    if(editId){
+      const n=this.notas.find(x=>x.id===editId);
+      if(!n)return;
+      document.getElementById('form-titulo-modal').textContent='✏️ Editar nota';
+      document.getElementById('form-titulo').value=n.titulo||'';
+      document.getElementById('form-detalle').value=n.detalle||'';
+      this.catSel=n.cat||'otro';
+    }else{
+      document.getElementById('form-titulo-modal').textContent='✏️ Nueva nota';
+      document.getElementById('form-titulo').value='';
+      document.getElementById('form-detalle').value='';
+      this.catSel='otro';
+    }
+    this.buildCatPicker();
+    this.cerrarOverlay('overlay-detalle');
+    document.getElementById('overlay-nota').classList.add('open');
+    setTimeout(function(){document.getElementById('form-titulo').focus();},300);
+  },
+  guardarNota(){
+    const titulo=document.getElementById('form-titulo').value.trim();
+    const detalle=document.getElementById('form-detalle').value.trim();
+    if(!titulo){this.mostrarToast('⚠️ Escribe algo en la nota');return;}
+    if(this.notaEditandoId){
+      const idx=this.notas.findIndex(x=>x.id===this.notaEditandoId);
+      if(idx>=0){
+        this.notas[idx].titulo=titulo;
+        this.notas[idx].detalle=detalle;
+        this.notas[idx].cat=this.catSel;
+        this.notas[idx].editado=Date.now();
+      }
+      this.mostrarToast('✅ Nota actualizada');
+    }else{
+      this.notas.unshift({
+        id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+        titulo,detalle,cat:this.catSel,ts:Date.now()
+      });
+      this.mostrarToast('✅ Nota guardada');
+    }
+    this.guardarStorage();
+    this.cerrarOverlay('overlay-nota');
+    document.getElementById('ml-correcciones').classList.remove('show');
+    this._correcciones=[];
+    this.renderNotas();
+    this.actualizarMLMini();
+    // Capa 2: Firebase (asíncrono, no bloquea la UI)
+    const notaGuardada=this.notas.find(function(x){
+      return x.titulo===(document.getElementById('form-titulo')?'':titulo);
+    })||this.notas[0];
+    this._fbGuardarNota(notaGuardada);
+    this._fbGuardarML();
+  },
+  editarNota(){
+    this.cerrarOverlay('overlay-detalle');
+    var id=this.notaViendoId;
+    setTimeout(function(){app.abrirFormNota(id);},200);
+  },
+  eliminarNota(){
+    if(!confirm('¿Eliminar esta nota?'))return;
+    const id=this.notaViendoId;
+    this.notas=this.notas.filter(x=>x.id!==id);
+    this.guardarStorage();this.cerrarOverlay('overlay-detalle');
+    this.renderNotas();this.actualizarMLMini();
+    this.mostrarToast('🗑️ Nota eliminada');
+    this._fbEliminarNota(id);
+  },
+
+  // ── BÚSQUEDA ──────────────────────────────────────────────────
+  buscar(val){
+    this.termino=val.trim();
+    // Al buscar — ir a "Todas" automáticamente
+    if(this.termino&&this.catActiva!=='all'){
+      this.catActiva='all';this.buildCatChips();
+    }
+    document.getElementById('btn-clear-search').classList.toggle('show',!!this.termino);
+    this.renderNotas();
+  },
+  limpiarBusqueda(){
+    document.getElementById('buscador').value='';
+    this.termino='';
+    document.getElementById('btn-clear-search').classList.remove('show');
+    this.renderNotas();
+  },
+
+  // ── RENDER ────────────────────────────────────────────────────
+  renderNotas(){
+    const lista=document.getElementById('notas-list');
+    let notas=[...this.notas];
+    if(this.catActiva!=='all')notas=notas.filter(n=>n.cat===this.catActiva);
+    let hayFuzzy=false;
+    if(this.termino){
+      const res=[];
+      notas.forEach(n=>{
+        const r=fuzzyNota(n,this.termino);
+        if(r.match){res.push({n,score:r.score,fuzzy:r.fuzzy});if(r.fuzzy)hayFuzzy=true;}
+      });
+      res.sort(function(a,b){return a.score-b.score;});
+      notas=res.map(function(r){return Object.assign({},r.n,{_fuzzy:r.fuzzy});});
+    }
+    if(!notas.length){
+      const msg=this.termino
+        ?'<b>Sin resultados para "'+this.termino+'"</b><br><small>El Fuzzy Lárez buscó en TODAS las categorías aunque escribiste diferente</small>'
+        :this.catActiva!=='all'?'Sin notas en esta categoría<br><small>Toca <b>+</b> para agregar</small>'
+        :'Sin notas aún<br><small>Toca <b>+</b> para anotar algo</small>';
+      lista.innerHTML='<div class="empty-state"><div class="empty-icon">'+(this.termino?'🔍':'📝')+'</div><div class="empty-title">'+(this.termino?'No encontré nada':'Tu memoria está vacía')+'</div><div class="empty-sub">'+msg+'</div></div>';
+      document.getElementById('ml-mini').style.display='none';
+      return;
+    }
+    // Agrupar por fecha
+    const grupos={};
+    notas.forEach(function(n){
+      const d=new Date(n.ts),hoy=new Date(),ayer=new Date(hoy);
+      ayer.setDate(hoy.getDate()-1);
+      let lbl;
+      if(d.toDateString()===hoy.toDateString())lbl='HOY';
+      else if(d.toDateString()===ayer.toDateString())lbl='AYER';
+      else lbl=d.toLocaleDateString('es-VE',{weekday:'long',day:'numeric',month:'long'}).toUpperCase();
+      if(!grupos[lbl])grupos[lbl]=[];
+      grupos[lbl].push(n);
+    });
+    var html='';
+    var self=this;
+    Object.entries(grupos).forEach(function(entry){
+      var lbl=entry[0],ns=entry[1];
+      html+='<div class="fecha-label">'+lbl+'</div>';
+      ns.forEach(function(n){
+        var cat=CATS.find(function(c){return c.id===n.cat;})||CATS.find(function(c){return c.id==='otro';});
+        var hora=new Date(n.ts).toLocaleTimeString('es-VE',{hour:'2-digit',minute:'2-digit'});
+        var tit=self.termino?self.highlight(n.titulo,self.termino):n.titulo;
+        var det=self.termino&&n.detalle?self.highlight(n.detalle,self.termino):n.detalle;
+        var fuzzyBadge=n._fuzzy?'<span class="nota-fuzzy-badge">≈</span>':'';
+        html+='<div class="nota-card" style="--cat-color:'+cat.color+'" onclick="app.verNota(\''+n.id+'\')">'
+          +'<div class="nota-header">'
+          +'<span class="nota-cat-icon">'+cat.icon+'</span>'
+          +'<span class="nota-titulo">'+tit+fuzzyBadge+'</span>'
+          +'<span class="nota-hora">'+hora+'</span>'
+          +'</div>'
+          +(n.detalle?'<div class="nota-detalle">'+det+'</div>':'')
+          +'</div>';
+        // Aprender si hubo búsqueda fuzzy
+        if(n._fuzzy&&self.termino){
+          self.termino.split(/\s+/).forEach(function(p){
+            if(p.length>=3&&fuzzyScore(n.titulo,p)>0){
+              ML_DIC.aprender(p,n.titulo.split(' ')[0]);
+            }
+          });
+        }
+      });
+    });
+    lista.innerHTML=html;
+    const mlMini=document.getElementById('ml-mini');
+    if(this.termino&&hayFuzzy){
+      mlMini.style.display='flex';
+      document.getElementById('ml-mini-txt').textContent='≈ Encontré aunque escribiste diferente — Método Lárez™';
+    }else{
+      mlMini.style.display='none';
+    }
+  },
+  highlight(texto,termino){
+    if(!texto||!termino)return texto;
+    var res=texto;
+    termino.split(/\s+/).filter(function(p){return p.length>=2;}).forEach(function(p){
+      try{
+        var re=new RegExp('('+p.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
+        res=res.replace(re,'<mark>$1</mark>');
+      }catch(e){}
+    });
+    return res;
+  },
+
+  // ── VER NOTA ──────────────────────────────────────────────────
+  verNota(id){
+    const n=this.notas.find(function(x){return x.id===id;});
+    if(!n)return;
+    this.notaViendoId=id;
+    const cat=CATS.find(function(c){return c.id===n.cat;})||CATS.find(function(c){return c.id==='otro';});
+    const fecha=new Date(n.ts).toLocaleDateString('es-VE',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const badge=document.getElementById('detalle-cat-badge');
+    badge.innerHTML=cat.icon+' '+cat.label;
+    badge.style.color=cat.color;badge.style.background=cat.color+'22';
+    document.getElementById('detalle-titulo').textContent=n.titulo;
+    const det=document.getElementById('detalle-body');
+    if(n.detalle){det.style.display='block';det.textContent=n.detalle;}else det.style.display='none';
+    document.getElementById('detalle-meta').textContent=fecha;
+    document.getElementById('overlay-detalle').classList.add('open');
+  },
+
+  // ── COMPARTIR WA ──────────────────────────────────────────────
+  compartirNota(){
+    const n=this.notas.find(function(x){return x.id===app.notaViendoId;});
+    if(!n)return;
+    const cat=CATS.find(function(c){return c.id===n.cat;})||CATS.find(function(c){return c.id==='otro';});
+    const fecha=new Date(n.ts).toLocaleDateString('es-VE',{day:'numeric',month:'long',year:'numeric'});
+    const hora=new Date(n.ts).toLocaleTimeString('es-VE',{hour:'2-digit',minute:'2-digit'});
+    var txt=cat.icon+' *'+n.titulo+'*\n';
+    if(n.detalle)txt+='\n'+n.detalle+'\n';
+    txt+='\n📅 '+fecha+' · '+hora+'\n_LÁREZ MEMO · LuAn System™_';
+    // Método robusto para Android
+    var url='https://wa.me/?text='+encodeURIComponent(txt);
+    var a=document.createElement('a');
+    a.href=url;a.target='_blank';a.rel='noopener noreferrer';
+    a.style.display='none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){document.body.removeChild(a);},500);
+    this.cerrarOverlay('overlay-detalle');
+  },
+
+  // ── EXPORTAR / IMPORTAR ───────────────────────────────────────
+  exportarNotas(){
+    const datos={
+      app:'LÁREZ MEMO',version:'1.0',
+      autor:'LuAn System™ · Ing. Luis Lárez',
+      fecha:new Date().toISOString(),
+      totalNotas:this.notas.length,
+      notas:this.notas,
+      ml_diccionario:ML_DIC.cargar()
+    };
+    const blob=new Blob([JSON.stringify(datos,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const f=new Date().toLocaleDateString('es-VE').replace(/\//g,'-');
+    a.href=url;a.download='LarezMemo_respaldo_'+f+'.json';
+    a.style.display='none';document.body.appendChild(a);a.click();
+    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},300);
+    localStorage.setItem('lm_respaldo_ts',Date.now().toString());
+    document.getElementById('respaldo-aviso').classList.remove('show');
+    this.cerrarOverlay('overlay-opciones');
+    this.mostrarToast('📤 Respaldo de '+this.notas.length+' notas exportado');
+  },
+  importarArchivo(input){
+    const arch=input.files[0];if(!arch)return;
+    const reader=new FileReader();
+    reader.onload=function(e){
+      try{
+        const datos=JSON.parse(e.target.result);
+        if(!datos.notas||!Array.isArray(datos.notas))throw new Error('Archivo inválido');
+        const fecha=new Date(datos.fecha).toLocaleDateString('es-VE');
+        if(!confirm('Importar '+datos.notas.length+' notas?\n\nFecha del respaldo: '+fecha+'\n\nSe mezclarán con las notas actuales sin borrar ninguna.'))return;
+        const ids=new Set(app.notas.map(function(n){return n.id;}));
+        const nuevas=datos.notas.filter(function(n){return !ids.has(n.id);});
+        app.notas=app.notas.concat(nuevas);
+        app.notas.sort(function(a,b){return b.ts-a.ts;});
+        if(datos.ml_diccionario)localStorage.setItem('lm_dic',JSON.stringify(datos.ml_diccionario));
+        app.guardarStorage();app.renderNotas();app.actualizarMLMini();
+        app.mostrarToast('📥 '+nuevas.length+' notas importadas');
+      }catch(err){app.mostrarToast('❌ Archivo de respaldo inválido');}
+    };
+    reader.readAsText(arch);
+    input.value='';
+  },
+
+  // ── ML ────────────────────────────────────────────────────────
+  limpiarML(){
+    if(!confirm('Resetear la memoria del Método Lárez?\nEl sistema olvidará los errores de escritura aprendidos.'))return;
+    localStorage.removeItem('lm_dic');
+    this.cerrarOverlay('overlay-opciones');
+    this.mostrarToast('🧠 Memoria ML reseteada');
+  },
+  actualizarMLMini(){
+    const total=this.notas.length;
+    const mini=document.getElementById('ml-mini');
+    if(total>2&&!this.termino){
+      mini.style.display='flex';
+      document.getElementById('ml-mini-txt').textContent=
+        'Método Lárez™ activo · '+total+' nota'+(total!==1?'s':'')+' · Busca en todas las categorías a la vez';
+    }else if(!this.termino){
+      mini.style.display='none';
+    }
+  },
+
+  // ── FIREBASE — NUBE ───────────────────────────────────────
+  // Arquitectura de 3 capas:
+  // 1. localStorage (RAM — siempre disponible, offline)
+  // 2. Firebase Firestore (nube — sincronización)
+  // 3. GitHub Pages (el código de la app)
+
+  _fbSincronizando: false,
+  _fbUltimaSincro: 0,
+
+  // Actualizar indicador de estado en navbar
+  _actualizarNubeDot(estado) {
+    // estado: 'conectado' | 'offline' | 'sincronizando' | 'espera'
+    const dot = document.getElementById('nube-dot');
+    if(!dot) return;
+    const cfg = {
+      conectado:     { texto:'☁️', color:'rgba(74,222,128,.8)',  title:'Sincronizado con la nube' },
+      offline:       { texto:'📴', color:'rgba(220,38,38,.7)',   title:'Sin conexión — guardando local' },
+      sincronizando: { texto:'🔄', color:'rgba(232,105,58,.8)',  title:'Sincronizando...' },
+      espera:        { texto:'⏳', color:'rgba(255,255,255,.3)', title:'Esperando conexión' },
+    };
+    const c = cfg[estado] || cfg.espera;
+    dot.textContent = c.texto;
+    dot.style.color = c.color;
+    dot.title = c.title;
+  },
+
+  // Guardar una nota en Firestore (cada nota es un documento)
+  async _fbGuardarNota(nota) {
+    if(!window._fbUID || !window._fb) return;
+    try {
+      const ref = window._fb.doc(
+        window._fb.db,
+        'usuarios', window._fbUID,
+        'notas', nota.id
+      );
+      await window._fb.setDoc(ref, {
+        ...nota,
+        _sincronizado: Date.now()
+      });
+    } catch(e) {
+      console.log('Firebase offline, guardado en localStorage');
+    }
+  },
+
+  // Eliminar nota de Firestore
+  async _fbEliminarNota(id) {
+    if(!window._fbUID || !window._fb) return;
+    try {
+      const ref = window._fb.doc(
+        window._fb.db,
+        'usuarios', window._fbUID,
+        'notas', id
+      );
+      await window._fb.deleteDoc(ref);
+    } catch(e) {}
+  },
+
+  // Guardar snapshot del ML en Firestore (cada 24h)
+  async _fbGuardarML() {
+    if(!window._fbUID || !window._fb) return;
+    const ahora = Date.now();
+    if(ahora - this._fbUltimaSincro < 864e5) return; // max 1 vez por día
+    try {
+      const ref = window._fb.doc(
+        window._fb.db,
+        'usuarios', window._fbUID,
+        'ml', 'diccionario'
+      );
+      await window._fb.setDoc(ref, {
+        datos: ML_DIC.cargar(),
+        ts: ahora,
+        version: 'ML_v8'
+      });
+      this._fbUltimaSincro = ahora;
+      localStorage.setItem('lm_fb_sincro', ahora.toString());
+    } catch(e) {}
+  },
+
+  // Sincronización completa al arrancar (cuando hay internet)
+  sincronizarConNube: async function() {
+    if(!window._fbUID || !window._fb || this._fbSincronizando) return;
+    this._fbSincronizando = true;
+    this._actualizarNubeDot('sincronizando');
+    try {
+      // Traer notas de Firestore
+      const snap = await window._fb.getDocs(
+        window._fb.collection(
+          window._fb.db,
+          'usuarios', window._fbUID, 'notas'
+        )
+      );
+      const notasNube = [];
+      snap.forEach(d => notasNube.push(d.data()));
+
+      if(notasNube.length > 0) {
+        // Mezclar nube + local sin perder ninguna
+        const idsLocal = new Set(this.notas.map(n => n.id));
+        const nuevasDeNube = notasNube.filter(n => !idsLocal.has(n.id));
+        if(nuevasDeNube.length > 0) {
+          this.notas = [...this.notas, ...nuevasDeNube];
+          this.notas.sort((a,b) => b.ts - a.ts);
+          this.guardarStorage();
+          this.renderNotas();
+          this.actualizarMLMini();
+        }
+      }
+
+      // Subir notas locales que no están en la nube
+      const idsNube = new Set(notasNube.map(n => n.id));
+      for(const nota of this.notas) {
+        if(!idsNube.has(nota.id)) {
+          await this._fbGuardarNota(nota);
+        }
+      }
+
+      // Restaurar ML si existe en nube y local está vacío
+      if(ML_DIC.total() === 0) {
+        const mlRef = window._fb.doc(
+          window._fb.db,
+          'usuarios', window._fbUID, 'ml', 'diccionario'
+        );
+        const mlSnap = await window._fb.getDocs(
+          window._fb.collection(window._fb.db, 'usuarios', window._fbUID, 'ml')
+        );
+        mlSnap.forEach(d => {
+          const data = d.data();
+          if(data.datos && Object.keys(data.datos).length > 0) {
+            localStorage.setItem('lm_dic', JSON.stringify(data.datos));
+          }
+        });
+      }
+
+      this._actualizarNubeDot('conectado');
+      localStorage.setItem('lm_fb_ultima', Date.now().toString());
+    } catch(e) {
+      this._actualizarNubeDot('offline');
+    }
+    this._fbSincronizando = false;
+  },
+
+  // ── STORAGE — 3 capas ────────────────────────────────────────
+  // Capa 1: localStorage (siempre, offline, O(1))
+  // Capa 2: Firebase Firestore (cuando hay internet)
+  // Capa 3: GitHub Pages (el código)
+  guardarStorage(){
+    localStorage.setItem('lm_notas',JSON.stringify(this.notas));
+  },
+
+  // ── OVERLAYS ──────────────────────────────────────────────────
+  cerrarOverlay(id){document.getElementById(id).classList.remove('open');},
+  cerrarOverlayFondo(e,id){if(e.target===document.getElementById(id))this.cerrarOverlay(id);},
+  abrirOpciones(){document.getElementById('overlay-opciones').classList.add('open');},
+
+  // ── TOAST ─────────────────────────────────────────────────────
+  mostrarToast(msg){
+    const t=document.getElementById('toast');
+    t.textContent=msg;t.classList.add('show');
+    clearTimeout(this._toastTimer);
+    this._toastTimer=setTimeout(function(){t.classList.remove('show');},2800);
+  },
+};
+
+// ── SWIPE HACIA ABAJO CIERRA MODAL ──────────────────────────────
+document.querySelectorAll('.sheet').forEach(function(sheet){
+  var startY=0;
+  sheet.addEventListener('touchstart',function(e){startY=e.touches[0].clientY;},{passive:true});
+  sheet.addEventListener('touchend',function(e){
+    if(e.changedTouches[0].clientY-startY>80){
+      var ov=sheet.closest('.overlay');
+      if(ov)ov.classList.remove('open');
+    }
+  },{passive:true});
+});
+
+app.init();
+</script>
+</body>
+</html>
