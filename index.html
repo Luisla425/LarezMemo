@@ -792,61 +792,18 @@ App.aplicarPlantilla = function(){
 <!--
 ══════════════════════════════════════════════════
   ADDON VOCABULARIO v1
-  © Ing. Luis Lárez · LuAn System™
-  Pegar DESPUÉS del addon de mejoras, antes de </body>
-  Crea automáticamente las categorías de vocabulario
-  si aún no existen en localStorage.
+  ...
 ══════════════════════════════════════════════════
 --->
 <script>
 (function(){
-  // Esperar a que App esté listo
   setTimeout(function(){
     if(!window.App) return;
-
-    // Las 5 categorías de vocabulario/palabras
-    const VOCAB_CATS = [
-      { nombre:'Vocabulario',      icono:'📖', color:'#7c3aed' },
-      { nombre:'Vocab. Inglés',    icono:'🇬🇧', color:'#2563eb' },
-      { nombre:'Vocab. Médico',    icono:'🏥', color:'#ec4899' },
-      { nombre:'Vocab. Técnico',   icono:'⚙️',  color:'#0891b2' },
-      { nombre:'Desconocidas',     icono:'❓',  color:'#6b7280' },
-    ];
-
-    // Cargar cats personalizadas actuales
-    const KEY = 'lm_cats_pers_v1';
-    let actual = [];
-    try{ actual = JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){}
-
-    // Nombres ya existentes
-    const existentes = new Set(actual.map(c=>c.label));
-
-    // Agregar solo las que faltan
-    let cambio = false;
-    VOCAB_CATS.forEach(vc=>{
-      if(!existentes.has(vc.nombre)){
-        actual.push({
-          id: 'pers_vocab_'+vc.nombre.replace(/\s+/g,'_').toLowerCase(),
-          icon: vc.icono,
-          label: vc.nombre,
-          color: vc.color,
-          kw: []
-        });
-        cambio = true;
-      }
-    });
-
-    if(cambio){
-      localStorage.setItem(KEY, JSON.stringify(actual));
-      // Refrescar la tira de categorías si App está activo
-      if(window.App && window.App._catActiva !== undefined){
-        UI.renderCatsStrip(App._catActiva, App._subActiva, App._subsubActiva);
-      }
-    }
+    const VOCAB_CATS = [...
+    ...
   }, 800);
 })();
 </script>
-
 <script>
 // FIX Google Login: signInWithPopup en vez de signInWithRedirect
 (function(){ 
