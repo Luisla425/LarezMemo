@@ -720,13 +720,13 @@ const TIPOS_CAMPO = [
   { test:/cantidad|dosis|edad|numero|número|#/i,    type:'number', extra:'inputmode="numeric"' },
 ];
 
-function tipoParaCampo(nombre){
+  function tipoParaCampo(nombre){
   for(const t of TIPOS_CAMPO) if(t.test.test(nombre)) return t;
   return { type:'text' };
 }
 
 // Formatea el valor capturado al texto final que entra a la nota
- function formatearValor(valor, tipo){
+function formatearValor(valor, tipo){
   if(!valor) return '';
   if(tipo.type === 'date'){
     try{
@@ -788,6 +788,45 @@ App.aplicarPlantilla = function(){
 
 })();
 </script>
+<!--
+══════════════════════════════════════════════════
+  ADDON VOCABULARIO v2 — Jerárquico
+  © Ing. Luis Lárez · LuAn System™
+══════════════════════════════════════════════════
+-->
+<script>
+(function(){
+  setTimeout(function(){
+    if(!window.App) return;
+
+    const KEY = 'lm_cats_pers_v1';
+    let actual = [];
+    try{ actual = JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){}
+
+    const yaExiste = actual.some(c => c.id === 'pers_vocabulario');
+
+    if(!yaExiste){
+      actual.push({
+        id: 'pers_vocabulario',
+        icon: '📖',
+        label: 'Vocabulario',
+        color: '#7c3aed',
+        kw: [],
+        children: [
+          { id:'pers_vocab_ingles',   icon:'🇬🇧', label:'Inglés',       color:'#2563eb', kw:[] },
+          { id:'pers_vocab_medico',   icon:'🏥', label:'Médico',       color:'#ec4899', kw:[] },
+          { id:'pers_vocab_tecnico',  icon:'⚙️',  label:'Técnico',      color:'#0891b2', kw:[] },
+          { id:'pers_vocab_descon',   icon:'❓',  label:'Desconocidas', color:'#6b7280', kw:[] }
+        ]
+      });
+      localStorage.setItem(KEY, JSON.stringify(actual));
+      if(window.App && window.App._catActiva !== undefined){
+        UI.renderCatsStrip(App._catActiva, App._subActiva, App._subsubActiva);
+      }
+    }
+  }, 800);
+})();
+</script>
 <script>
 // FIX Google Login: signInWithPopup en vez de signInWithRedirect
 (function(){ 
@@ -803,7 +842,7 @@ App.aplicarPlantilla = function(){
           window._fbUID = r.user.uid;
           localStorage.setItem('lm_uid', r.user.uid); 
           if(window.App) window.App.onFbReady(); 
-        } 
+        }
       }).catch(function() { 
         UI.toast('Error Google login'); 
       }); 
@@ -813,4 +852,5 @@ App.aplicarPlantilla = function(){
 })();
 </script>
 </body>
-</html>     
+</html>
+    
