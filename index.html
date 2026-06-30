@@ -726,7 +726,7 @@ function tipoParaCampo(nombre){
 }
 
 // Formatea el valor capturado al texto final que entra a la nota
-function formatearValor(valor, tipo){
+ function formatearValor(valor, tipo){
   if(!valor) return '';
   if(tipo.type === 'date'){
     try{
@@ -778,7 +778,6 @@ App.aplicarPlantilla = function(){
       const tipo = tipoParaCampo(c); tipo._campo = c;
       const formateado = formatearValor(inp.value, tipo);
       if(formateado && formateado !== inp.value){
-        // Convertir el control a texto para que el original lea el valor formateado
         inp.type = 'text';
         inp.value = formateado;
       }
@@ -787,21 +786,6 @@ App.aplicarPlantilla = function(){
   _origAplicarPlantilla();
 };
 
-})();
-</script>
-<!--
-══════════════════════════════════════════════════
-  ADDON VOCABULARIO v1
-  ...
-══════════════════════════════════════════════════
---->
-<script>
-(function(){
-  setTimeout(function(){
-    if(!window.App) return;
-    const VOCAB_CATS = [...
-    ...
-  }, 800);
 })();
 </script>
 <script>
@@ -829,6 +813,4 @@ App.aplicarPlantilla = function(){
 })();
 </script>
 </body>
-        </html>
-
-
+</html>     
