@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import{getAuth,signInAnonymously,onAuthStateChanged,GoogleAuthProvider,signInWithRedirect,getRedirectResult}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+window._fb={db,collection,doc,setDoc,getDocs,deleteDoc,auth,GoogleAuthProvider,signInWithRedirect,signInWithPopup};
 import{getFirestore,collection,doc,setDoc,getDocs,deleteDoc}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 const cfg={apiKey:"AIzaSyAj7-WNT2FkU5jmkOS9NligfWlkoIZ6V4o",authDomain:"larezmemo-77cbe.firebaseapp.com",projectId:"larezmemo-77cbe",storageBucket:"larezmemo-77cbe.firebasestorage.app",messagingSenderId:"1010192785370",appId:"1:1010192785370:web:e1519dcb988e42652d6ae3"};
 const fbApp=initializeApp(cfg);const auth=getAuth(fbApp),db=getFirestore(fbApp);
@@ -615,31 +615,15 @@ var _e="CgovLyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09
 var _d=decodeURIComponent(escape(atob(_e)));
 (0,eval)(_d);
 </script>
-  <!--
+<!--
 ═══════════════════════════════════════════════════════════════════
   MEJORAS v1 — Categorías Recientes + Plantillas Tipadas
   © Ing. Luis Lárez · LuAn System™ · Arichuna, Venezuela
-
-  CÓMO INSTALAR:
-  Pega este <script> antes de </body>, DESPUÉS del script grande
-  de LAREZ MEMO v5 (y después del addon Patrón, si lo instalaste).
-  100% aditivo — no modifica nada existente.
-
-  QUÉ AGREGA:
-  ① Categorías recientes: al abrir "Nueva nota" aparecen botones
-     con las últimas 3 categorías que usaste, para un toque.
-  ② Plantillas con campos tipados: si un [campo] se llama
-     "fecha", "hora", "monto", "telefono", etc., el formulario
-     muestra el control correcto (calendario, reloj, número...)
-     en vez de texto libre, y formatea el resultado.
 ═══════════════════════════════════════════════════════════════════
 -->
 <script>
 (function(){
 
-// ════════════════════════════════════════════════════════════════
-//  ① CATEGORÍAS RECIENTES
-// ════════════════════════════════════════════════════════════════
 const RK = 'lm_cats_recientes_v5';
 
 function getRecientes(){ try{ return JSON.parse(localStorage.getItem(RK)||'[]'); }catch(e){ return []; } }
@@ -663,7 +647,6 @@ function renderRecientes(){
     picker.parentNode.insertBefore(cont, picker);
   }
   const r = getRecientes();
-  // No mostrar si no hay recientes, o si estamos editando una nota existente
   if(!r.length || App._editId){ cont.style.display='none'; cont.innerHTML=''; return; }
   cont.style.display = 'flex';
   let html = '<span style="font-family:var(--fh);font-size:.58rem;color:var(--text3);letter-spacing:1px;">RECIENTES</span>';
@@ -684,14 +667,12 @@ window.__lmAplicarReciente = function(i){
   UI.toast('Categoría aplicada');
 };
 
-// Hook: al abrir el formulario, mostrar recientes
 const _origOpenForm = App.openForm.bind(App);
 App.openForm = function(editId){
   _origOpenForm(editId);
   setTimeout(renderRecientes, 20);
 };
 
-// Hook: al guardar una nota NUEVA, registrar su categoría como reciente
 const _origGuardarNota1 = App.guardarNota.bind(App);
 App.guardarNota = function(){
   const wasNew = !this._editId;
@@ -700,18 +681,12 @@ App.guardarNota = function(){
   if(wasNew) saveReciente(cat, sub, subsub);
 };
 
-// También actualizar recientes al seleccionar manualmente una categoría
 ['selMainCat','selSubCat','selSubSubCat'].forEach(fn=>{
   if(typeof App[fn] !== 'function') return;
   const orig = App[fn].bind(App);
   App[fn] = function(id){ orig(id); setTimeout(renderRecientes, 10); };
 });
 
-
-// ════════════════════════════════════════════════════════════════
-//  ② PLANTILLAS CON CAMPOS TIPADOS
-// ════════════════════════════════════════════════════════════════
-// Detecta el tipo de control según el NOMBRE del [campo]
 const TIPOS_CAMPO = [
   { test:/fecha|dia\b|día/i,                 type:'date' },
   { test:/hora|time/i,                       type:'time' },
@@ -720,12 +695,11 @@ const TIPOS_CAMPO = [
   { test:/cantidad|dosis|edad|numero|número|#/i,    type:'number', extra:'inputmode="numeric"' },
 ];
 
-  function tipoParaCampo(nombre){
+function tipoParaCampo(nombre){
   for(const t of TIPOS_CAMPO) if(t.test.test(nombre)) return t;
   return { type:'text' };
 }
 
-// Formatea el valor capturado al texto final que entra a la nota
 function formatearValor(valor, tipo){
   if(!valor) return '';
   if(tipo.type === 'date'){
@@ -748,7 +722,6 @@ function formatearValor(valor, tipo){
   return valor;
 }
 
-// Re-generar los inputs del formulario de plantilla CON el tipo correcto
 const _origUsarPlantilla = App.usarPlantilla.bind(App);
 App.usarPlantilla = function(id){
   _origUsarPlantilla(id);
@@ -766,7 +739,6 @@ App.usarPlantilla = function(id){
   }).join('');
 };
 
-// Antes de aplicar: convertir cada valor tipado a su forma de texto final
 const _origAplicarPlantilla = App.aplicarPlantilla.bind(App);
 App.aplicarPlantilla = function(){
   const t = this._tmplActual;
@@ -853,4 +825,5 @@ App.aplicarPlantilla = function(){
 </script>
 </body>
 </html>
-    
+
+
