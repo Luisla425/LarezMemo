@@ -921,7 +921,11 @@ App.loginGoogle=function(){
   if(!window._fb||!window._fb.auth){UI.toast('Firebase no listo');return;}
   if(!window._fb.signInWithPopup){UI.toast('signInWithPopup no disponible');return;}
   const provider=new window._fb.GoogleAuthProvider();
-  
+window._fb.signInWithRedirect(window._fb.auth,provider)
+    .catch(err=>{
+      console.error('Google login error:',err);
+      UI.toast('Error login: '+err.code);
+    });  
 };
 console.log('%c✅ Fix Google Login activo','color:#4ade80;font-weight:700;');
 })();
