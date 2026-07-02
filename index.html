@@ -921,19 +921,7 @@ App.loginGoogle=function(){
   if(!window._fb||!window._fb.auth){UI.toast('Firebase no listo');return;}
   if(!window._fb.signInWithPopup){UI.toast('signInWithPopup no disponible');return;}
   const provider=new window._fb.GoogleAuthProvider();
-  window._fb.signInWithPopup(window._fb.auth,provider)
-    .then(result=>{
-      if(result&&result.user){
-        window._fbUID=result.user.uid;
-        localStorage.setItem('lm_uid',result.user.uid);
-        App.onFbReady();
-        UI.toast('✅ Conectado: '+result.user.displayName);
-      }
-    })
-    .catch(err=>{
-      console.error('Google login error:',err);
-      UI.toast('Error login: '+err.code);
-    });
+  
 };
 console.log('%c✅ Fix Google Login activo','color:#4ade80;font-weight:700;');
 })();
