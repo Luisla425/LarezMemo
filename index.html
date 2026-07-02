@@ -823,6 +823,122 @@ App.aplicarPlantilla = function(){
   setTimeout(aplicarFix, 500); 
 })();
 </script>
+<script>
+// ============================================================
+// ADDON MEJORAS v1 — LuAn System™
+// ============================================================
+(function(){
+const CATS_KEY='lm_cats_recientes_v1';
+function getCatsRec(){try{return JSON.parse(localStorage.getItem(CATS_KEY)||'[]')}catch{return[]}}
+function saveCatsRec(a){localStorage.setItem(CATS_KEY,JSON.stringify(a.slice(0,3)))}
+function registrarCat(id){if(!id||id==='otro')return;let a=getCatsRec().filter(x=>x!==id);a.unshift(id);saveCatsRec(a);}
+const _guardar=App.guardarNota.bind(App);
+App.guardarNota=function(){registrarCat(App._catMain);_guardar();};
+const _openForm=App.openForm.bind(App);
+App.openForm=function(editId){
+  _openForm(editId);
+  setTimeout(()=>{
+    const rec=getCatsRec();if(!rec.length)return;
+    const picker=document.getElementById('cats-picker');if(!picker)return;
+    const ya=document.getElementById('ml-rec-strip');if(ya)ya.remove();
+    const strip=document.createElement('div');strip.id='ml-rec-strip';
+    strip.style.cssText='display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;';
+    rec.forEach(id=>{
+      const c=CatTree.getById(id);if(!c)return;
+      const btn=document.createElement('button');
+      btn.style.cssText='padding:4px 10px;border-radius:20px;border:1.5px solid '+c.color+';background:var(--bg2);color:var(--text2);font-size:.7rem;font-weight:700;cursor:pointer;';
+      btn.innerHTML='⭐ '+c.icon+' '+c.label;
+      btn.onclick=()=>{App.selMainCat(id);};
+      strip.appendChild(btn);
+    });
+    picker.parentNode.insertBefore(strip,picker);
+  },320);
+};
+const TIPOS={fecha:{type:'date'},monto:{type:'number',inputmode:'decimal'},hora:{type:'time'},telefono:{type:'tel'}};
+const _onTitulo=App.onTituloInput.bind(App);
+App.onTituloInput=function(val){
+  _onTitulo(val);
+  const inp=document.getElementById('f-titulo');if(!inp)return;
+  const ya=document.getElementById('ml-tipo-hint');if(ya)ya.remove();
+  const match=val.match(/\[(\w+)\]/);if(!match)return;
+  const tipo=TIPOS[match[1].toLowerCase()];if(!tipo)return;
+  const hint=document.createElement('div');hint.id='ml-tipo-hint';
+  hint.style.cssText='font-size:.66rem;color:var(--accent);margin-top:3px;';
+  hint.textContent='📌 Campo ['+match[1]+']: toca para escribir '+match[1];
+  inp.parentNode.appendChild(hint);
+  inp.type=tipo.type||'text';
+  if(tipo.inputmode)inp.inputMode=tipo.inputmode;
+};
+console.log('%c✅ MEJORAS v1 activo','color:#4ade80;font-weight:700;');
+})();
+</script>
 
+<script>
+// ============================================================
+// ADDON VOCABULARIO v2 JERÁRQUICO — LuAn System™
+// ============================================================
+(function(){
+const VOCAB_KEY='lm_cats_pers_v1';
+const GUARD_ID='pers_vocabulario';
+function yaExiste(){
+  try{
+    const a=JSON.parse(localStorage.getItem(VOCAB_KEY)||'[]');
+    return a.some(c=>c.id===GUARD_ID);
+  }catch{return false;}
+}
+if(yaExiste()){
+  console.log('%c📖 Vocabulario v2 ya existe — skip','color:#6b7280;');
+  return;
+}
+const vocab={
+  id:GUARD_ID,
+  icon:'📖',
+  label:'Vocabulario',
+  color:'#7c3aed',
+  kw:['palabra','vocabulario','termino','significado','definicion','ingles','medico','tecnico','desconocida'],
+  children:[
+    {id:'pers_vocab_ingles',icon:'🇬🇧',label:'Inglés',color:'#2563eb',kw:['ingles','english','traduccion','palabra']},
+    {id:'pers_vocab_medico',icon:'🏥',label:'Médico',color:'#ec4899',kw:['medico','diagnostico','sintoma','enfermedad','termino medico']},
+    {id:'pers_vocab_tecnico',icon:'⚙️',label:'Técnico',color:'#0891b2',kw:['tecnico','tecnologia','sistema','programa','codigo']},
+    {id:'pers_vocab_desconocidas',icon:'❓',label:'Desconocidas',color:'#6b7280',kw:['desconocida','nueva','rara','extraña']}
+  ]
+};
+try{
+  const a=JSON.parse(localStorage.getItem(VOCAB_KEY)||'[]');
+  a.push(vocab);
+  localStorage.setItem(VOCAB_KEY,JSON.stringify(a));
+  console.log('%c📖 Vocabulario v2 jerárquico instalado','color:#7c3aed;font-weight:700;');
+}catch(e){console.error('Vocabulario v2 error:',e);}
+})();
+</script>
+
+<script>
+// ============================================================
+// ADDON FIX GOOGLE LOGIN — LuAn System™
+// ============================================================
+(function(){
+App.loginGoogle=function(){
+  if(!window._fb||!window._fb.auth){UI.toast('Firebase no listo');return;}
+  if(!window._fb.signInWithPopup){UI.toast('signInWithPopup no disponible');return;}
+  const provider=new window._fb.GoogleAuthProvider();
+  window._fb.signInWithPopup(window._fb.auth,provider)
+    .then(result=>{
+      if(result&&result.user){
+        window._fbUID=result.user.uid;
+        localStorage.setItem('lm_uid',result.user.uid);
+        App.onFbReady();
+        UI.toast('✅ Conectado: '+result.user.displayName);
+      }
+    })
+    .catch(err=>{
+      console.error('Google login error:',err);
+      UI.toast('Error login: '+err.code);
+    });
+};
+console.log('%c✅ Fix Google Login activo','color:#4ade80;font-weight:700;');
+})();
+</script>
+</body>
+</html>
 
 
