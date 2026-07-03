@@ -615,6 +615,17 @@ var _e="CgovLyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09
 var _d=decodeURIComponent(escape(atob(_e)));
 (0,eval)(_d);
 </script>
+<!--MEJORAS v1-->
+<script>
+(function(){const RK='lm_cats_recientes_v5';function getRecientes(){try{return JSON.parse(localStorage.getItem(RK)||'[]');}catch(e){return[];}}function saveReciente(cat,sub,subsub){if(!cat)return;let r=getRecientes();r=r.filter(e=>!(e.cat===cat&&e.sub===sub&&e.subsub===subsub));r.unshift({cat:cat||null,sub:sub||null,subsub:subsub||null});r=r.slice(0,3);localStorage.setItem(RK,JSON.stringify(r));}function renderRecientes(){const picker=document.getElementById('cats-picker');if(!picker)return;let cont=document.getElementById('recientes-cats');if(!cont){cont=document.createElement('div');cont.id='recientes-cats';cont.style.cssText='display:flex;gap:5px;margin-bottom:.6rem;flex-wrap:wrap;align-items:center;';picker.parentNode.insertBefore(cont,picker);}const r=getRecientes();if(!r.length||App._editId){cont.style.display='none';cont.innerHTML='';return;}cont.style.display='flex';let html='<span style="font-family:var(--fh);font-size:.58rem;color:var(--text3);letter-spacing:1px;">RECIENTES</span>';r.forEach((e,i)=>{const node=CatTree.getById(e.subsub||e.sub||e.cat);if(!node)return;html+='<button type="button" class="cat-chip sub" style="border-color:'+node.color+';color:'+node.color+';" onclick="window.__lmAplicarReciente('+i+')">'+node.icon+' '+node.label+'</button>';});cont.innerHTML=html;}window.__lmAplicarReciente=function(i){const r=getRecientes();const e=r[i];if(!e)return;App._catMain=e.cat;App._catSub=e.sub;App._catSubSub=e.subsub;document.getElementById('ml-sug').classList.remove('show');UI.renderCatsPicker(App._catMain,App._catSub,App._catSubSub);UI.toast('Categoría aplicada');};const _origOpenForm=App.openForm.bind(App);App.openForm=function(editId){_origOpenForm(editId);setTimeout(renderRecientes,20);};const _origGuardarNota1=App.guardarNota.bind(App);App.guardarNota=function(){const wasNew=!this._editId;const cat=this._catMain,sub=this._catSub,subsub=this._catSubSub;_origGuardarNota1();if(wasNew)saveReciente(cat,sub,subsub);};['selMainCat','selSubCat','selSubSubCat'].forEach(fn=>{if(typeof App[fn]!=='function')return;const orig=App[fn].bind(App);App[fn]=function(id){orig(id);setTimeout(renderRecientes,10);};});})();
+</script>
+<!--VOCABULARIO v2-->
+<script>
+(function(){setTimeout(function(){if(!window.App)return;const KEY='lm_cats_pers_v1';let actual=[];try{actual=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){}const yaExiste=actual.some(c=>c.id==='pers_vocabulario');if(!yaExiste){actual.push({id:'pers_vocabulario',icon:'📖',label:'Vocabulario',color:'#7c3aed',kw:[],children:[{id:'pers_vocab_ingles',icon:'🇬🇧',label:'Inglés',color:'#2563eb',kw:[]},{id:'pers_vocab_medico',icon:'🏥',label:'Médico',color:'#ec4899',kw:[]},{id:'pers_vocab_tecnico',icon:'⚙️',label:'Técnico',color:'#0891b2',kw:[]},{id:'pers_vocab_descon',icon:'❓',label:'Desconocidas',color:'#6b7280',kw:[]}]});localStorage.setItem(KEY,JSON.stringify(actual));if(window.App&&window.App._catActiva!==undefined){UI.renderCatsStrip(App._catActiva,App._subActiva,App._subsubActiva);}}},800);})();
+</script>
+<!--FIX GOOGLE LOGIN-->
+<script>
+(function(){function aplicarFix(){if(!window._fb||!window._fb.auth){setTimeout(aplicarFix,300);return;}App.loginGoogle=function(){const provider=new window._fb.GoogleAuthProvider();window._fb.signInWithRedirect(window._fb.auth,provider).catch(function(err){UI.toast('Error: '+(err.code||err.message));});};};setTimeout(aplicarFix,500);})();
+</script>
 </body>
 </html>
-
