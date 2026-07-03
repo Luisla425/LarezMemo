@@ -624,9 +624,30 @@ var _d=decodeURIComponent(escape(atob(_e)));
 (function(){setTimeout(function(){if(!window.App)return;const KEY='lm_cats_pers_v1';let actual=[];try{actual=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){}const yaExiste=actual.some(c=>c.id==='pers_vocabulario');if(!yaExiste){actual.push({id:'pers_vocabulario',icon:'📖',label:'Vocabulario',color:'#7c3aed',kw:[],children:[{id:'pers_vocab_ingles',icon:'🇬🇧',label:'Inglés',color:'#2563eb',kw:[]},{id:'pers_vocab_medico',icon:'🏥',label:'Médico',color:'#ec4899',kw:[]},{id:'pers_vocab_tecnico',icon:'⚙️',label:'Técnico',color:'#0891b2',kw:[]},{id:'pers_vocab_descon',icon:'❓',label:'Desconocidas',color:'#6b7280',kw:[]}]});localStorage.setItem(KEY,JSON.stringify(actual));if(window.App&&window.App._catActiva!==undefined){UI.renderCatsStrip(App._catActiva,App._subActiva,App._subsubActiva);}}},800);})();
 </script>
 <!--FIX GOOGLE LOGIN-->
-<script>
-(function(){function aplicarFix(){if(!window._fb||!window._fb.auth){setTimeout(aplicarFix,300);return;}App.loginGoogle=function(){const provider=new window._fb.GoogleAuthProvider();window._fb.signInWithRedirect(window._fb.auth,provider).catch(function(err){UI.toast('Error: '+(err.code||err.message));});};};setTimeout(aplicarFix,500);})();
-</script>
+  (function(){
+  // Capturar resultado del redirect
+  if(window._fb&&window._fb.auth&&window._fb.getRedirectResult){
+    window._fb.getRedirectResult(window._fb.auth).then(function(r){
+      if(r&&r.user){
+        window._fbUID=r.user.uid;
+        localStorage.setItem('lm_uid',r.user.uid);
+        if(window.App)App.onFbReady();
+        UI.toast('✅ Conectado: '+r.user.displayName);
+      }
+    }).catch(function(err){
+      UI.toast('Error redirect: '+(err.code||err.message));
+    });
+  }
+  function aplicarFix(){
+    if(!window._fb||!window._fb.auth){setTimeout(aplicarFix,300);return;}
+    App.loginGoogle=function(){
+      const provider=new window._fb.GoogleAuthProvider();
+      window._fb.signInWithRedirect(window._fb.auth,provider)
+        .catch(function(err){UI.toast('Error: '+(err.code||err.message));});
+    };
+  }
+  setTimeout(aplicarFix,500);
+})();
 </body>
 </html>
 
