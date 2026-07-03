@@ -785,7 +785,42 @@ App.aplicarPlantilla = function(){
 })();
 </script>
 
-
+<script>
+// FIX GOOGLE LOGIN + DIAGNÓSTICO — LuAn System™
+(function(){
+  var intentos = 0;
+  function revisar(){
+    intentos++;
+    if(intentos === 3) UI.toast('Revisando Firebase... ⏳');
+    if(!window._fb){
+      if(intentos >= 33){
+        UI.toast('❌ Firebase CDN no cargó en 10s');
+        return;
+      }
+      setTimeout(revisar, 300);
+      return;
+    }
+    if(!window._fb.auth){
+      UI.toast('❌ Firebase auth nulo');
+      return;
+    }
+    App.loginGoogle = function(){
+      UI.toast('Conectando con Google... ⏳');
+      try{
+        var provider = new window._fb.GoogleAuthProvider();
+        window._fb.signInWithRedirect(window._fb.auth, provider)
+          .catch(function(err){
+            UI.toast('❌ Error: '+(err.code||err.message));
+          });
+      }catch(e){
+        UI.toast('❌ Excepción: '+e.message);
+      }
+    };
+    UI.toast('✅ Firebase OK — toca G ahora');
+  }
+  setTimeout(revisar, 500);
+})();
+</script>
 </body>
 </html>
 
