@@ -623,6 +623,10 @@ var _d=decodeURIComponent(escape(atob(_e)));
 <script>
 (function(){setTimeout(function(){if(!window.App)return;const KEY='lm_cats_pers_v1';let actual=[];try{actual=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){}const yaExiste=actual.some(c=>c.id==='pers_vocabulario');if(!yaExiste){actual.push({id:'pers_vocabulario',icon:'📖',label:'Vocabulario',color:'#7c3aed',kw:[],children:[{id:'pers_vocab_ingles',icon:'🇬🇧',label:'Inglés',color:'#2563eb',kw:[]},{id:'pers_vocab_medico',icon:'🏥',label:'Médico',color:'#ec4899',kw:[]},{id:'pers_vocab_tecnico',icon:'⚙️',label:'Técnico',color:'#0891b2',kw:[]},{id:'pers_vocab_descon',icon:'❓',label:'Desconocidas',color:'#6b7280',kw:[]}]});localStorage.setItem(KEY,JSON.stringify(actual));if(window.App&&window.App._catActiva!==undefined){UI.renderCatsStrip(App._catActiva,App._subActiva,App._subsubActiva);}}},800);})();
 </script>
+<!--MOTO v1-->
+<script>
+(function(){setTimeout(function(){if(!window.App)return;const KEY='lm_cats_pers_v1';let actual=[];try{actual=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){}const yaExiste=actual.some(c=>c.id==='pers_moto');if(!yaExiste){actual.push({id:'pers_moto',icon:'🏍️',label:'Moto',color:'#111111',kw:['moto','aceite','kilometro','tanque','repuesto','falla','soat','seguro'],children:[{id:'pers_moto_aceite',icon:'🛢️',label:'Cambio Aceite',color:'#b45309',kw:['aceite','cambio','filtro']},{id:'pers_moto_combustible',icon:'⛽',label:'Combustible',color:'#0369a1',kw:['tanque','litros','km','gasolina']},{id:'pers_moto_repuestos',icon:'🔩',label:'Repuestos',color:'#6b7280',kw:['repuesto','pieza','caucho','freno','cadena','bujia']},{id:'pers_moto_fallas',icon:'🚨',label:'Fallas',color:'#dc2626',kw:['falla','problema','ruido','revisar']},{id:'pers_moto_docs',icon:'📋',label:'Documentos',color:'#065f46',kw:['soat','seguro','licencia','placa','vence']}]});localStorage.setItem(KEY,JSON.stringify(actual));if(window.App&&window.App._catActiva!==undefined){UI.renderCatsStrip(App._catActiva,App._subActiva,App._subsubActiva);}}},800);})();
+</script>  
 <!--FIX GOOGLE LOGIN-->
 <script>
 window.__loginG=function(){
