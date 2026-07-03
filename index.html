@@ -785,24 +785,7 @@ App.aplicarPlantilla = function(){
 })();
 </script>
 
-<script>
-// FIX GOOGLE LOGIN — LuAn System™
-(function(){
-  function aplicarFix(){
-    if(!window._fb || !window._fb.auth){
-      setTimeout(aplicarFix, 300); return;
-    }
-    App.loginGoogle = function(){
-      const provider = new window._fb.GoogleAuthProvider();
-      window._fb.signInWithRedirect(window._fb.auth, provider)
-        .catch(function(err){
-          UI.toast('Error login: '+(err.code||err.message));
-        });
-    };
-  }
-  setTimeout(aplicarFix, 500);
-})();
-</script>
+
 </body>
 </html>
 
