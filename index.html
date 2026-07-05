@@ -621,59 +621,10 @@ var _d=decodeURIComponent(escape(atob(_e)));
 </script>
 <!--EDITAR PLANTILLAS v1-->
 <script>
-(function(){
-function instalar(){
-  if(!window.App||!window.UI||!window.Plantillas){setTimeout(instalar,300);return;}
-  App.editarPlantilla=function(id){
-    const t=Plantillas.getAll().find(function(x){return x.id===id;});
-    if(!t)return;
-    document.getElementById('tmpl-nombre').value=t.nombre;
-    document.getElementById('tmpl-texto').value=t.texto;
-    App._editandoTmplId=id;
-    UI.toast('Editando: '+t.nombre);
-  };
-  const _origCrear=App.crearPlantilla.bind(App);
-  App.crearPlantilla=function(){
-    if(App._editandoTmplId){
-      const nombre=document.getElementById('tmpl-nombre').value.trim();
-      const texto=document.getElementById('tmpl-texto').value.trim();
-      if(!nombre||!texto){UI.toast('Faltan datos');return;}
-      Plantillas.remove(App._editandoTmplId);
-      Plantillas.add(nombre,texto,App._catMain||'otro');
-      App._editandoTmplId=null;
-      document.getElementById('tmpl-nombre').value='';
-      document.getElementById('tmpl-texto').value='';
-      document.getElementById('tmpl-campos-preview').textContent='';
-      UI.renderPlantillas(Plantillas.getAll(),'mgr');
-      UI.toast('Plantilla actualizada');
-      return;
-    }
-    _origCrear();
-  };
-  const _origOpen=App.openPlantillasMgr.bind(App);
-  App.openPlantillasMgr=function(){
-    App._editandoTmplId=null;
-    _origOpen();
-    setTimeout(function(){
-      const cont=document.getElementById('plantillas-mgr-lista');
-      if(!cont)return;
-      const lista=Plantillas.getAll();
-      Array.from(cont.children).forEach(function(fila,i){
-        if(!lista[i]||fila.querySelector('.btn-edit-tmpl'))return;
-        const btn=document.createElement('button');
-        btn.className='btn-edit-tmpl';
-        btn.textContent='✏️';
-        btn.style.cssText='background:none;border:none;font-size:1rem;cursor:pointer;position:absolute;top:.4rem;right:2.8rem;';
-        btn.onclick=function(){App.editarPlantilla(lista[i].id);};
-        fila.appendChild(btn);
-      });
-      UI.toast('Editor listo');
-    },200);
-  };
-  UI.toast('Addon OK');
-}
-setTimeout(instalar,2000);
-})();
+setTimeout(function(){
+  if(window.UI) UI.toast('ADDON CORRE');
+  else alert('UI no existe');
+},3000);
 </script>
 <!--VOCABULARIO v2-->
 <script>
