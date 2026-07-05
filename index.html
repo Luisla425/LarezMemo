@@ -622,10 +622,8 @@ var _d=decodeURIComponent(escape(atob(_e)));
 <!--EDITAR PLANTILLAS v1-->
 <script>
 (function(){
-  function instalarEditor(){
-    if(!window.App||!window.Plantillas||!window.UI){
-      setTimeout(instalarEditor,300);return;
-    }
+  function instalar(){
+    if(!window.App||!window.UI||!window.Plantillas){setTimeout(instalar,300);return;}
     App.editarPlantilla=function(id){
       const t=Plantillas.getAll().find(function(x){return x.id===id;});
       if(!t)return;
@@ -652,35 +650,35 @@ var _d=decodeURIComponent(escape(atob(_e)));
       }
       _origCrear();
     };
-    const _origRender=UI.renderPlantillas.bind(UI);
-    UI.renderPlantillas=function(lista,modo){
-      _origRender(lista,modo);
-      if(modo!=='mgr')return;
+    function agregarBotones(){
       const cont=document.getElementById('plantillas-mgr-lista');
       if(!cont)return;
+      const lista=Plantillas.getAll();
       Array.from(cont.children).forEach(function(fila,i){
         if(!lista[i])return;
         if(fila.querySelector('.btn-edit-tmpl'))return;
         const btn=document.createElement('button');
         btn.className='btn-edit-tmpl';
         btn.textContent='✏️';
-        btn.style.cssText='background:none;border:none;font-size:1rem;cursor:pointer;position:absolute;top:.5rem;right:2.5rem;';
-        btn.onclick=function(){App.editarPlantilla(lista[i].id);};
+        btn.style.cssText='background:none;border:none;font-size:1.1rem;cursor:pointer;position:absolute;top:.4rem;right:2.8rem;';
+        btn.onclick=(function(id){return function(){App.editarPlantilla(id);};})(lista[i].id);
         fila.appendChild(btn);
       });
-    };
+    }
+    const _origOpen=App.openPlantillasMgr.bind(App);
     App.openPlantillasMgr=function(){
       App._editandoTmplId=null;
-      document.getElementById('ov-opciones')&&document.getElementById('ov-opciones').classList.remove('open');
-      document.getElementById('tmpl-nombre').value='';
-      document.getElementById('tmpl-texto').value='';
-      document.getElementById('tmpl-campos-preview').textContent='';
-      UI.renderPlantillas(Plantillas.getAll(),'mgr');
-      document.getElementById('ov-plantillas-mgr').classList.add('open');
+      _origOpen();
+      setTimeout(agregarBotones,100);
     };
-    console.log('✅ Editor plantillas activo');
+    const _origRender=UI.renderPlantillas.bind(UI);
+    UI.renderPlantillas=function(lista,modo){
+      _origRender(lista,modo);
+      if(modo==='mgr')setTimeout(agregarBotones,50);
+    };
+    console.log('✅ Editor plantillas v2 activo');
   }
-  setTimeout(instalarEditor,800);
+  setTimeout(instalar,800);
 })();
 </script>
 <!--VOCABULARIO v2-->
