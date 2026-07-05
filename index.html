@@ -709,9 +709,9 @@ function instalar(){
       });
     },50);
   };
- const _origDetalle=App.verNota?App.verNota.bind(App):null;
+  const _origDetalle=App._abrirDetalle?App._abrirDetalle.bind(App):null;
   if(_origDetalle){
-    App.verNota=function(id){
+    App._abrirDetalle=function(id){
       _origDetalle(id);
       setTimeout(function(){
         const ov=document.getElementById('ov-detalle');
