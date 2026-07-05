@@ -679,7 +679,7 @@ setTimeout(instalar,1500);
   function getFijadas(){try{return JSON.parse(localStorage.getItem(FKEY)||'[]');}catch(e){return[];}}
   function saveFijadas(a){localStorage.setItem(FKEY,JSON.stringify(a));}
   window.toggleFijar=function(id){
-    if(!id){UI.toast('Error: sin ID');return;}
+    if(!id)return;
     let f=getFijadas();
     const btn=document.getElementById('btn-fijar');
     if(f.includes(id)){
@@ -700,9 +700,29 @@ setTimeout(instalar,1500);
     const fij=notas.filter(n=>fijadas.includes(n.id));
     const resto=notas.filter(n=>!fijadas.includes(n.id));
     _origRender([...fij,...resto],term,fuzzy);
+    setTimeout(function(){
+      const cards=document.querySelectorAll('.nota-card');
+      cards.forEach(function(card){
+        const onclick=card.getAttribute('onclick')||'';
+        const match=onclick.match(/'([a-z0-9]+)'/);
+        if(!match)return;
+        const id=match[1];
+        if(fijadas.includes(id)){
+          if(!card.querySelector('.pin-ico')){
+            const pin=document.createElement('span');
+            pin.className='pin-ico';
+            pin.textContent='📌';
+            pin.style.cssText='position:absolute;top:6px;right:8px;font-size:.85rem;';
+            card.style.position='relative';
+            card.style.borderLeft='3px solid #f59e0b';
+            card.appendChild(pin);
+          }
+        }
+      });
+    },80);
   };
 })();
-</script>  
+</script>
 <!--VOCABULARIO v2-->
 <script>
 (function(){setTimeout(function(){if(!window.App)return;const KEY='lm_cats_pers_v1';let actual=[];try{actual=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){}const yaExiste=actual.some(c=>c.id==='pers_vocabulario');if(!yaExiste){actual.push({id:'pers_vocabulario',icon:'📖',label:'Vocabulario',color:'#7c3aed',kw:[],children:[{id:'pers_vocab_ingles',icon:'🇬🇧',label:'Inglés',color:'#2563eb',kw:[]},{id:'pers_vocab_medico',icon:'🏥',label:'Médico',color:'#ec4899',kw:[]},{id:'pers_vocab_tecnico',icon:'⚙️',label:'Técnico',color:'#0891b2',kw:[]},{id:'pers_vocab_descon',icon:'❓',label:'Desconocidas',color:'#6b7280',kw:[]}]});localStorage.setItem(KEY,JSON.stringify(actual));if(window.App&&window.App._catActiva!==undefined){UI.renderCatsStrip(App._catActiva,App._subActiva,App._subsubActiva);}}},800);})();
