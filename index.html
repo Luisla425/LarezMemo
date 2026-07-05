@@ -440,6 +440,7 @@ body.neon .toast{background:var(--accent);color:#000;box-shadow:0 0 15px var(--a
     <img id="det-adj" class="adj-preview" src="" alt="foto">
     <div class="det-meta" id="det-meta"></div>
     <div class="btn-row">
+      <button id="btn-fijar" onclick="window.toggleFijar&&window.toggleFijar(App._viewId)" style="background:none;border:1.5px solid #f59e0b;border-radius:20px;padding:4px 14px;font-size:.75rem;color:#f59e0b;cursor:pointer;margin-bottom:6px;width:100%;">📌 Fijar nota</button>
       <button class="btn btn-d" onclick="App.eliminarNota()" style="flex:.5;">&#128465;</button>
       <button class="btn btn-ok" id="btn-completar" onclick="App.toggleEstado()">&#10003;</button>
       <button class="btn btn-gray" id="btn-expirar" onclick="App.expirarNota()">&#9203; Exp.</button>
@@ -671,68 +672,6 @@ function instalar(){
 setTimeout(instalar,1500);
 })();
 </script>
-  <!--NOTAS FIJADAS v1-->
-<script>
-(function(){
-function instalar(){
-  if(!window.App||!window.UI){setTimeout(instalar,300);return;}
-  const FKEY='lm_fijadas_v1';
-  function getFijadas(){try{return JSON.parse(localStorage.getItem(FKEY)||'[]');}catch(e){return[];}}
-  function saveFijadas(a){localStorage.setItem(FKEY,JSON.stringify(a));}
-  window.toggleFijar=function(id){
-    let f=getFijadas();
-    if(f.includes(id)){f=f.filter(x=>x!==id);UI.toast('📌 Nota desfijada');}
-    else{f.unshift(id);UI.toast('📌 Nota fijada arriba');}
-    saveFijadas(f);
-    App.render();
-  };
-  const _origRender=UI.renderNotas.bind(UI);
-  UI.renderNotas=function(notas,term,fuzzy){
-    const fijadas=getFijadas();
-    const fij=notas.filter(n=>fijadas.includes(n.id));
-    const resto=notas.filter(n=>!fijadas.includes(n.id));
-    _origRender([...fij,...resto],term,fuzzy);
-    setTimeout(function(){
-      const cards=document.querySelectorAll('.nota-card');
-      cards.forEach(function(card){
-        const id=card.dataset.id||card.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
-        if(!id)return;
-        if(fijadas.includes(id)&&!card.querySelector('.pin-badge')){
-          const badge=document.createElement('span');
-          badge.className='pin-badge';
-          badge.textContent='📌';
-          badge.style.cssText='position:absolute;top:6px;right:8px;font-size:.9rem;';
-          card.style.position='relative';
-          card.appendChild(badge);
-          card.style.borderLeft='3px solid #f59e0b';
-        }
-      });
-    },50);
-  };
-  const _origDetalle=App._abrirDetalle?App._abrirDetalle.bind(App):null;
-  if(_origDetalle){
-    App._abrirDetalle=function(id){
-      _origDetalle(id);
-      setTimeout(function(){
-        const ov=document.getElementById('ov-detalle');
-        if(!ov)return;
-        if(ov.querySelector('.btn-fijar'))return;
-        const fijadas=getFijadas();
-        const btn=document.createElement('button');
-        btn.className='btn-fijar';
-        btn.textContent=fijadas.includes(id)?'📌 Desfijada':'📌 Fijar';
-        btn.style.cssText='background:none;border:1.5px solid #f59e0b;border-radius:20px;padding:4px 12px;font-size:.75rem;color:#f59e0b;cursor:pointer;margin:8px 4px;';
-        btn.onclick=function(){toggleFijar(id);ov.classList.remove('open');};
-        const acciones=ov.querySelector('.detalle-acciones')||ov.querySelector('.sheet-body');
-        if(acciones)acciones.prepend(btn);
-      },200);
-    };
-  }
-  UI.toast('📌 Notas fijadas listo');
-}
-setTimeout(instalar,2000);
-})();
-</script>
 <!--VOCABULARIO v2-->
 <script>
 (function(){setTimeout(function(){if(!window.App)return;const KEY='lm_cats_pers_v1';let actual=[];try{actual=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){}const yaExiste=actual.some(c=>c.id==='pers_vocabulario');if(!yaExiste){actual.push({id:'pers_vocabulario',icon:'📖',label:'Vocabulario',color:'#7c3aed',kw:[],children:[{id:'pers_vocab_ingles',icon:'🇬🇧',label:'Inglés',color:'#2563eb',kw:[]},{id:'pers_vocab_medico',icon:'🏥',label:'Médico',color:'#ec4899',kw:[]},{id:'pers_vocab_tecnico',icon:'⚙️',label:'Técnico',color:'#0891b2',kw:[]},{id:'pers_vocab_descon',icon:'❓',label:'Desconocidas',color:'#6b7280',kw:[]}]});localStorage.setItem(KEY,JSON.stringify(actual));if(window.App&&window.App._catActiva!==undefined){UI.renderCatsStrip(App._catActiva,App._subActiva,App._subsubActiva);}}},800);})();
@@ -800,3 +739,5 @@ window.__loginG=function(){
 </script>
 </body>
 </html>
+
+
