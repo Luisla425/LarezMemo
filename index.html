@@ -619,5 +619,146 @@ var _d=decodeURIComponent(escape(atob(_e)));
 (0,eval)(_d);
 </script>
 <script>window.UI=UI;window.Plantillas=Plantillas;window.CatTree=CatTree;</script>
-
+</script>
+<script>window.UI=UI;window.Plantillas=Plantillas;window.CatTree=CatTree;</script>
+<!--MEJORAS v1-->
+<script>
+(function(){const RK='lm_cats_recientes_v5';function getRecientes(){try{return JSON.parse(localStorage.getItem(RK)||'[]');}catch(e){return[];}}function saveReciente(cat,sub,subsub){if(!cat)return;let r=getRecientes();r=r.filter(e=>!(e.cat===cat&&e.sub===sub&&e.subsub===subsub));r.unshift({cat:cat||null,sub:sub||null,subsub:subsub||null});r=r.slice(0,3);localStorage.setItem(RK,JSON.stringify(r));}function renderRecientes(){const picker=document.getElementById('cats-picker');if(!picker)return;let cont=document.getElementById('recientes-cats');if(!cont){cont=document.createElement('div');cont.id='recientes-cats';cont.style.cssText='display:flex;gap:5px;margin-bottom:.6rem;flex-wrap:wrap;align-items:center;';picker.parentNode.insertBefore(cont,picker);}const r=getRecientes();if(!r.length||App._editId){cont.style.display='none';cont.innerHTML='';return;}cont.style.display='flex';let html='<span style="font-family:var(--fh);font-size:.58rem;color:var(--text3);letter-spacing:1px;">RECIENTES</span>';r.forEach((e,i)=>{const node=CatTree.getById(e.subsub||e.sub||e.cat);if(!node)return;html+='<button type="button" class="cat-chip sub" style="border-color:'+node.color+';color:'+node.color+';" onclick="window.__lmAplicarReciente('+i+')">'+node.icon+' '+node.label+'</button>';});cont.innerHTML=html;}window.__lmAplicarReciente=function(i){const r=getRecientes();const e=r[i];if(!e)return;App._catMain=e.cat;App._catSub=e.sub;App._catSubSub=e.subsub;document.getElementById('ml-sug').classList.remove('show');UI.renderCatsPicker(App._catMain,App._catSub,App._catSubSub);UI.toast('Categoría aplicada');};const _origOpenForm=App.openForm.bind(App);App.openForm=function(editId){_origOpenForm(editId);setTimeout(renderRecientes,20);};const _origGuardarNota1=App.guardarNota.bind(App);App.guardarNota=function(){const wasNew=!this._editId;const cat=this._catMain,sub=this._catSub,subsub=this._catSubSub;_origGuardarNota1();if(wasNew)saveReciente(cat,sub,subsub);};['selMainCat','selSubCat','selSubSubCat'].forEach(fn=>{if(typeof App[fn]!=='function')return;const orig=App[fn].bind(App);App[fn]=function(id){orig(id);setTimeout(renderRecientes,10);};});})();
+</script>
+<!--EDITAR PLANTILLAS v1-->
+<script>
+(function(){
+function instalar(){
+  if(!window.App||!window.UI||!window.Plantillas){setTimeout(instalar,300);return;}
+  App.editarPlantilla=function(id){
+    const t=Plantillas.getAll().find(function(x){return x.id===id;});
+    if(!t)return;
+    document.getElementById('tmpl-nombre').value=t.nombre;
+    document.getElementById('tmpl-texto').value=t.texto;
+    App._editandoTmplId=id;
+    UI.toast('Editando: '+t.nombre);
+  };
+  const _origCrear=App.crearPlantilla.bind(App);
+  App.crearPlantilla=function(){
+    if(App._editandoTmplId){
+      const nombre=document.getElementById('tmpl-nombre').value.trim();
+      const texto=document.getElementById('tmpl-texto').value.trim();
+      if(!nombre||!texto){UI.toast('Faltan datos');return;}
+      Plantillas.remove(App._editandoTmplId);
+      Plantillas.add(nombre,texto,App._catMain||'otro');
+      App._editandoTmplId=null;
+      document.getElementById('tmpl-nombre').value='';
+      document.getElementById('tmpl-texto').value='';
+      document.getElementById('tmpl-campos-preview').textContent='';
+      UI.renderPlantillas(Plantillas.getAll(),'mgr');
+      UI.toast('Plantilla actualizada');
+      return;
+    }
+    _origCrear();
+  };
+  const _origOpen=App.openPlantillasMgr.bind(App);
+  App.openPlantillasMgr=function(){
+    App._editandoTmplId=null;
+    _origOpen();
+    setTimeout(function(){
+      const cont=document.getElementById('plantillas-mgr-lista');
+      if(!cont)return;
+      const lista=Plantillas.getAll();
+      Array.from(cont.children).forEach(function(fila,i){
+        if(!lista[i]||fila.querySelector('.btn-edit-tmpl'))return;
+        const btn=document.createElement('button');
+        btn.className='btn-edit-tmpl';
+        btn.textContent='✏️';
+        btn.style.cssText='background:none;border:none;font-size:1rem;cursor:pointer;position:absolute;top:.4rem;right:2.8rem;';
+        btn.onclick=function(){App.editarPlantilla(lista[i].id);};
+        fila.appendChild(btn);
+      });
+    },200);
+  };
+  UI.toast('Editor listo');
+}
+setTimeout(instalar,2000);
+})();
+</script>
+<!--NOTAS FIJADAS v1-->
+<script>
+(function(){
+  const FKEY='lm_fijadas_v1';
+  function getFijadas(){try{return JSON.parse(localStorage.getItem(FKEY)||'[]');}catch(e){return[];}}
+  function saveFijadas(a){localStorage.setItem(FKEY,JSON.stringify(a));}
+  window.toggleFijar=function(id){
+    if(!id)return;
+    let f=getFijadas();
+    const btn=document.getElementById('btn-fijar');
+    if(f.includes(id)){
+      f=f.filter(x=>x!==id);
+      UI.toast('Nota desfijada');
+      if(btn)btn.textContent='📌 Fijar nota';
+    }else{
+      f.unshift(id);
+      UI.toast('📌 Nota fijada arriba');
+      if(btn)btn.textContent='📌 Desfijada';
+    }
+    saveFijadas(f);
+    App.render();
+  };
+  const _origRender=UI.renderNotas.bind(UI);
+  UI.renderNotas=function(notas,term,fuzzy){
+    const fijadas=getFijadas();
+    const fij=notas.filter(n=>fijadas.includes(n.id));
+    const resto=notas.filter(n=>!fijadas.includes(n.id));
+    _origRender([...fij,...resto],term,fuzzy);
+    setTimeout(function(){
+      const cards=document.querySelectorAll('.nota-card');
+      cards.forEach(function(card){
+        const onclick=card.getAttribute('onclick')||'';
+        const match=onclick.match(/verNota\('([^']+)'\)/);
+        if(!match)return;
+        const id=match[1];
+        if(fijadas.includes(id)){
+          if(!card.querySelector('.pin-ico')){
+            const pin=document.createElement('span');
+            pin.className='pin-ico';
+            pin.textContent='📌';
+            pin.style.cssText='position:absolute;top:6px;right:8px;font-size:.85rem;';
+            card.style.position='relative';
+            card.style.borderLeft='3px solid #f59e0b';
+            card.appendChild(pin);
+          }
+        }
+      });
+    },80);
+  };
+})();
+</script>
+<!--VOCABULARIO v2-->
+<script>
+(function(){setTimeout(function(){if(!window.App)return;const KEY='lm_cats_pers_v1';let actual=[];try{actual=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){}const yaExiste=actual.some(c=>c.id==='pers_vocabulario');if(!yaExiste){actual.push({id:'pers_vocabulario',icon:'📖',label:'Vocabulario',color:'#7c3aed',kw:[],children:[{id:'pers_vocab_ingles',icon:'🇬🇧',label:'Inglés',color:'#2563eb',kw:[]},{id:'pers_vocab_medico',icon:'🏥',label:'Médico',color:'#ec4899',kw:[]},{id:'pers_vocab_tecnico',icon:'⚙️',label:'Técnico',color:'#0891b2',kw:[]},{id:'pers_vocab_descon',icon:'❓',label:'Desconocidas',color:'#6b7280',kw:[]}]});localStorage.setItem(KEY,JSON.stringify(actual));if(window.App&&window.App._catActiva!==undefined){UI.renderCatsStrip(App._catActiva,App._subActiva,App._subsubActiva);}}},800);})();
+</script>
+<!--MOTO v1-->
+<script>
+(function(){setTimeout(function(){if(!window.App)return;const KEY='lm_cats_pers_v1';let actual=[];try{actual=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){}const yaExiste=actual.some(c=>c.id==='pers_moto');if(!yaExiste){actual.push({id:'pers_moto',icon:'🏍️',label:'Moto',color:'#111111',kw:['moto','aceite','kilometro','tanque','repuesto','falla','soat','seguro'],children:[{id:'pers_moto_aceite',icon:'🛢️',label:'Cambio Aceite',color:'#b45309',kw:['aceite','cambio','filtro']},{id:'pers_moto_combustible',icon:'⛽',label:'Combustible',color:'#0369a1',kw:['tanque','litros','km','gasolina']},{id:'pers_moto_repuestos',icon:'🔩',label:'Repuestos',color:'#6b7280',kw:['repuesto','pieza','caucho','freno','cadena','bujia']},{id:'pers_moto_fallas',icon:'🚨',label:'Fallas',color:'#dc2626',kw:['falla','problema','ruido','revisar']},{id:'pers_moto_docs',icon:'📋',label:'Documentos',color:'#065f46',kw:['soat','seguro','licencia','placa','vence']}]});localStorage.setItem(KEY,JSON.stringify(actual));if(window.App&&window.App._catActiva!==undefined){UI.renderCatsStrip(App._catActiva,App._subActiva,App._subsubActiva);}}},800);})();
+</script>
+<!--PIN CLOUD v1-->
+<script>
+(function(){
+  setTimeout(function(){
+    if(!window._fb||!window._fb.auth||!window._fb.db)return;
+    const KEY='lm_pin_v5';
+    const {doc,setDoc,getDoc}=window._fb;
+    function subirPIN(){const hash=localStorage.getItem(KEY);if(!hash||!window._fbUID)return;const ref=doc(window._fb.db,'usuarios',window._fbUID);setDoc(ref,{pinHash:hash},{merge:true});}
+    function bajarPIN(){if(!window._fbUID)return;if(localStorage.getItem(KEY))return;const ref=doc(window._fb.db,'usuarios',window._fbUID);getDoc(ref).then(function(snap){if(snap.exists()&&snap.data().pinHash){localStorage.setItem(KEY,snap.data().pinHash);UI.toast('🔒 PIN restaurado desde la nube');}});}
+    const _origGestionarPIN=App.gestionarPIN.bind(App);
+    App.gestionarPIN=function(){_origGestionarPIN();setTimeout(subirPIN,1000);};
+    bajarPIN();
+    setTimeout(subirPIN,2000);
+  },1500);
+})();
+</script>
+<!--FIX GOOGLE LOGIN-->
+<script>
+window.__loginG=function(){if(!window._fb||!window._fb.auth){UI.toast('Firebase no listo');return;}var provider=new window._fb.GoogleAuthProvider();window._fb.signInWithPopup(window._fb.auth,provider).then(function(r){if(r&&r.user){window._fbUID=r.user.uid;localStorage.setItem('lm_uid',r.user.uid);if(window.App)App.onFbReady();UI.toast('✅ '+r.user.displayName);}}).catch(function(err){UI.toast('❌ '+(err.code||err.message));});};
+</script>
+</body>
+</html>
 
