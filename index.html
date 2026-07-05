@@ -704,7 +704,7 @@ setTimeout(instalar,1500);
       const cards=document.querySelectorAll('.nota-card');
       cards.forEach(function(card){
         const onclick=card.getAttribute('onclick')||'';
-        const match=onclick.match(/'([a-z0-9]+)'/);
+        const match=onclick.match(/verNota\('([^']+)'\)/);
         if(!match)return;
         const id=match[1];
         if(fijadas.includes(id)){
