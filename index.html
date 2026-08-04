@@ -654,10 +654,11 @@ var _e="CgovLyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09
 var _d=decodeURIComponent(escape(atob(_e)));
 (0,eval)(_d);
 </script>
- <script>
-window.UI=UI;window.Plantillas=Plantillas;window.CatTree=CatTree;window.PINMgr=PINMgr;
+<script>
+window.UI=UI;window.Plantillas=Plantillas;window.CatTree=CatTree;
 setTimeout(function(){
-  if(window.App&&window.PINMgr&&PINMgr.exists()){
+  const pinExiste=!!localStorage.getItem('lm_pin_v5');
+  if(window.App&&pinExiste){
     App._bloquearApp();
   }
 },500);
