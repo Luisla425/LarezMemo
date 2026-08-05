@@ -773,6 +773,25 @@ setTimeout(instalar,2000);
   };
 })();
 </script>
+<!--FIX NULL v1-->
+<script>
+(function(){
+  setTimeout(function(){
+    if(!window.UI)return;
+    const _origRender=UI.renderNotas.bind(UI);
+    UI.renderNotas=function(notas,term,fuzzy){
+      _origRender(notas,term,fuzzy);
+      setTimeout(function(){
+        document.querySelectorAll('.n-body').forEach(function(el){
+          if(el.textContent==='null'||el.textContent.trim()==='null'){
+            el.style.display='none';
+          }
+        });
+      },50);
+    };
+  },1000);
+})();
+</script>  
 <!--VOCABULARIO v2-->
 <script>
 (function(){setTimeout(function(){if(!window.App)return;const KEY='lm_cats_pers_v1';let actual=[];try{actual=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){}const yaExiste=actual.some(c=>c.id==='pers_vocabulario');if(!yaExiste){actual.push({id:'pers_vocabulario',icon:'📖',label:'Vocabulario',color:'#7c3aed',kw:[],children:[{id:'pers_vocab_ingles',icon:'🇬🇧',label:'Inglés',color:'#2563eb',kw:[]},{id:'pers_vocab_medico',icon:'🏥',label:'Médico',color:'#ec4899',kw:[]},{id:'pers_vocab_tecnico',icon:'⚙️',label:'Técnico',color:'#0891b2',kw:[]},{id:'pers_vocab_descon',icon:'❓',label:'Desconocidas',color:'#6b7280',kw:[]}]});localStorage.setItem(KEY,JSON.stringify(actual));if(window.App&&window.App._catActiva!==undefined){UI.renderCatsStrip(App._catActiva,App._subActiva,App._subsubActiva);}}},800);})();
