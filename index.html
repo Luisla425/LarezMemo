@@ -936,7 +936,7 @@ const App={
     this.renderCatsStrip();
     this.render();
     this._checkRespaldo();
-    this.setNube('wait');
+    this.setNube('wait');if(window._fbUID)setTimeout(()=>this.onFbReady(),2000);
     setTimeout(()=>{if(!window._fbUID)this.setNube('offline');},5000);
     this._oraculoUpdate();
     if(PINMgr.exists()&&this._notas.some(n=>n.privada)){
