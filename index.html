@@ -957,8 +957,12 @@ const App={
         if(document.hidden&&PINMgr.exists()&&this._notas.some(n=>n.privada)){
           this._sesionOk=false;
         }
-        if(!document.hidden&&PINMgr.exists()&&this._notas.some(n=>n.privada)&&!this._sesionOk){
-          this._bloquearApp();
+        if(!document.hidden){
+          if(PINMgr.exists()&&this._notas.some(n=>n.privada)&&!this._sesionOk){
+            this._bloquearApp();
+          }else if(window._fbUID&&window._fb&&window._fb.db){
+            setTimeout(()=>App.onFbReady(),1000);
+          }
         }
       });
     }
