@@ -936,8 +936,13 @@ const App={
     this.renderCatsStrip();
     this.render();
     this._checkRespaldo();
-    this.setNube('wait');if(window._fbUID)setTimeout(()=>this.onFbReady(),2000);
-    setTimeout(()=>{if(!window._fbUID)this.setNube('offline');},5000);
+    this.setNube('wait');
+    if(window._fbUID){
+      // UID ya existe — sincronizar directamente
+      setTimeout(()=>this.onFbReady(),2000);
+    }else{
+      setTimeout(()=>{if(!window._fbUID)this.setNube('offline');},5000);
+    }
     this._oraculoUpdate();
     if(PINMgr.exists()&&this._notas.some(n=>n.privada)){
       this._bloquearApp();
@@ -1858,6 +1863,12 @@ const App={
       if(!n.cat)n.cat='otro';
       if(!n.recurrencia)n.recurrencia='ninguna';
     });
+    // Si ya hay notas del manual en storage, marcar para no duplicar
+    const _manualKey='lm_manual_ok_'+(codigo||'default');
+    const _notasActuales=Storage.load();
+    if(_notasActuales.some(n=>n.cat==='manual')){
+      localStorage.setItem(_manualKey,'1');
+    }
     document.getElementById('bienvenida').classList.remove('show');
     this._arrancar();
     // Sincronizar con Firebase usando el UID correcto del usuario
