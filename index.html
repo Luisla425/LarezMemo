@@ -676,6 +676,10 @@ const FB={
       }
       const cids=new Set(cloud.map(n=>n.id));
       for(const n of local){if(!cids.has(n.id))await this.saveNote(n);}
+      const _mk="lm_manual_ok_"+(localStorage.getItem("lm_acceso_codigo")||"default");
+      localStorage.setItem(_mk,"1");
+      const _nm=App._notas.filter(n=>n.cat==="manual");
+      if(_nm.length>12){_nm.sort((a,b)=>b.ts-a.ts);const _ids=new Set(_nm.slice(12).map(n=>n.id));App._notas=App._notas.filter(n=>!_ids.has(n.id));Storage.save(App._notas);App.render();}
       const pinHash=localStorage.getItem(PINMgr._key());
       if(pinHash&&window._fb.setDoc){
         try{
@@ -998,6 +1002,7 @@ const App={
     this._intentos=0;
     document.getElementById('bloqueo').classList.remove('show');
     this.render();
+    if(window._fbUID&&window._fb&&window._fb.db){setTimeout(()=>App.onFbReady(),500);}
   },
 
   bloquear(){
