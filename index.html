@@ -690,6 +690,17 @@ const FB={
           );
         }catch(e){console.warn('FB pin sync:',e);}
       }
+      // Sincronizar plantillas desde Firestore
+      try{
+        const psnap=await window._fb.getDocs(window._fb.collection(window._fb.db,'usuarios',window._fbUID,'plantillas'));
+        const cloud_p=[];psnap.forEach(d=>cloud_p.push(d.data()));
+        if(cloud_p.length>0){
+          const local_p=Plantillas.getAll();
+          const pids=new Set(local_p.map(p=>p.id));
+          const nuevas_p=cloud_p.filter(p=>!pids.has(p.id));
+          if(nuevas_p.length>0){Plantillas.save([...local_p,...nuevas_p]);}
+        }
+      }catch(e){console.warn('plantillas sync:',e);}
       App.setNube('ok');
     }catch(e){
       console.warn('FB syncNow error:',e);
@@ -1675,7 +1686,11 @@ const App={
       this._tmplEditId=null;
       this.toast('Plantilla actualizada ✓');
     }else{
-      Plantillas.add(nombre,texto);
+      const pid=Plantillas.add(nombre,texto);
+      if(window._fbUID&&window._fb){
+        const pt=Plantillas.getAll().find(t=>t.id===pid);
+        if(pt)window._fb.setDoc(window._fb.doc(window._fb.db,'usuarios',window._fbUID,'plantillas',pid),pt).catch(()=>{});
+      }
       this.toast('Plantilla "'+nombre+'" creada con '+campos.length+' campo'+(campos.length!==1?'s':''));
     }
     document.getElementById('tmpl-nombre').value='';
