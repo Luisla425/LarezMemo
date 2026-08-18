@@ -10,13 +10,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import{getFirestore,collection,doc,setDoc,getDocs,deleteDoc,getDoc}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import{getFirestore,collection,doc,setDoc,getDocs,deleteDoc,getDoc,enableNetwork,disableNetwork}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 const cfg={apiKey:"AIzaSyAmH2fDMCLT6tQVZB6VhuDbkdWJmGZ0OGE",authDomain:"larez-luan-memo.firebaseapp.com",projectId:"larez-luan-memo",storageBucket:"larez-luan-memo.firebasestorage.app",messagingSenderId:"210963014910",appId:"1:210963014910:web:685aa309785c18bb30f1af"};
 const fbApp=initializeApp(cfg);
 const db=getFirestore(fbApp);
 // UID se asigna cuando el usuario entra con su código — no antes
 window._fbUID=null;
-window._fb={db,collection,doc,setDoc,getDocs,deleteDoc,getDoc};
+window._fb={db,collection,doc,setDoc,getDocs,deleteDoc,getDoc,enableNetwork,disableNetwork};
 // Avisar a la app cuando Firebase esté listo
 setTimeout(()=>{
   if(window.App&&window._fbUID){
@@ -971,8 +971,10 @@ const App={
         if(!document.hidden){
           if(PINMgr.exists()&&this._notas.some(n=>n.privada)&&!this._sesionOk){
             this._bloquearApp();
-          }else if(window._fbUID&&window._fb&&window._fb.db){
-            setTimeout(()=>App.onFbReady(),1000);
+          }
+          if(window._fbUID&&window._fb&&window._fb.db){
+            window._fb.enableNetwork(window._fb.db).catch(()=>{});
+            setTimeout(()=>App.onFbReady(),2000);
           }
         }
       });
@@ -1017,7 +1019,7 @@ const App={
     this._intentos=0;
     document.getElementById('bloqueo').classList.remove('show');
     this.render();
-    if(window._fbUID&&window._fb&&window._fb.db){setTimeout(()=>App.onFbReady(),500);}
+    if(window._fbUID&&window._fb&&window._fb.db){window._fb.enableNetwork(window._fb.db).catch(()=>{});setTimeout(()=>App.onFbReady(),1500);}
   },
 
   bloquear(){
