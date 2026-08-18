@@ -903,7 +903,16 @@ const App={
     // Buscar UID: primero por código, luego el viejo lm_uid como fallback
     const uidPorCodigo=codigoActual?localStorage.getItem('lm_uid_'+codigoActual):null;
     const uidViejo=localStorage.getItem('lm_uid');
-    const uidGuardado=uidPorCodigo||uidViejo||null;
+    // Buscar UID en cualquier clave lm_uid_ que exista
+    let uidDeCualquierClave=null;
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k&&k.startsWith('lm_uid_')&&localStorage.getItem(k)){
+        uidDeCualquierClave=localStorage.getItem(k);
+        break;
+      }
+    }
+    const uidGuardado=uidPorCodigo||uidViejo||uidDeCualquierClave||null;
     if(uidGuardado){
       window._fbUID=uidGuardado;
       // Asegurar que lm_uid_CODIGO también esté guardado para futuras sesiones
