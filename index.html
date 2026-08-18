@@ -1952,7 +1952,10 @@ const App={
   },
 
   loginGoogle(){
-    this.toast('☁️ Sincronizando notas...');
+    const uid=window._fbUID?window._fbUID.substring(0,8):'NULL';
+    const fb=window._fb?'OK':'NULL';
+    const db=window._fb&&window._fb.db?'OK':'NULL';
+    this.toast('UID:'+uid+' FB:'+fb+' DB:'+db,5000);
     FB.syncNow(this._notas);
   },
 
