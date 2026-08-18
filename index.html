@@ -912,7 +912,10 @@ const App={
         break;
       }
     }
-    const uidGuardado=uidPorCodigo||uidViejo||uidDeCualquierClave||null;
+    const uidFijo=localStorage.getItem('lm_uid_fijo');
+    const codigoFijo=localStorage.getItem('lm_codigo_fijo');
+    if(codigoFijo&&!codigoActual){localStorage.setItem('lm_acceso_codigo',codigoFijo);}
+    const uidGuardado=uidPorCodigo||uidViejo||uidDeCualquierClave||uidFijo||null;
     if(uidGuardado){
       window._fbUID=uidGuardado;
       // Asegurar que lm_uid_CODIGO también esté guardado para futuras sesiones
@@ -1890,6 +1893,8 @@ const App={
     // Asignar UID global — AHORA sí sincroniza con el UID correcto
     window._fbUID=uid;
     localStorage.setItem('lm_uid',uid);
+    localStorage.setItem('lm_uid_fijo',uid);
+    localStorage.setItem('lm_codigo_fijo',codigo);
     // Cargar notas del usuario AHORA que ya tenemos su Storage key correcta
     this._notas=Storage.load();
     this._notas.forEach(n=>{
