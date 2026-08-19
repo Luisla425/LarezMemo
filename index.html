@@ -11,8 +11,6 @@
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import{getFirestore,collection,doc,setDoc,getDocs,deleteDoc,getDoc,enableNetwork,disableNetwork}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-import{getAuth,signInAnonymously}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-const _auth=getAuth(fbApp);
 const cfg={apiKey:"AIzaSyAmH2fDMCLT6tQVZB6VhuDbkdWJmGZ0OGE",authDomain:"larez-luan-memo.firebaseapp.com",projectId:"larez-luan-memo",storageBucket:"larez-luan-memo.firebasestorage.app",messagingSenderId:"210963014910",appId:"1:210963014910:web:685aa309785c18bb30f1af"};
 const fbApp=initializeApp(cfg);
 const db=getFirestore(fbApp);
@@ -276,7 +274,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);min-height:100
 <nav class="nav">
   <div class="nav-brand">LÁREZ<span>MEMO</span> <span style="font-size:.65rem;opacity:.6;">v6</span></div>
   <div class="nav-right">
-    <span class="nube" style="width:12px;height:12px;border-radius:50%;background:#4ade80;display:inline-block" id="nube">☁️</span>
+    <span class="nube" id="nube">☁️</span>
     <button class="icon-btn" onclick="App.bloquear()" title="Bloquear">🔒</button>
     <button class="icon-btn" onclick="App.loginGoogle()" title="Google" style="font-family:var(--fh);font-weight:900;font-size:.82rem;">G</button>
     <button class="icon-btn" onclick="App.openOpciones()" title="Opciones">⋯</button>
@@ -1884,21 +1882,15 @@ const App={
     // Si ya tiene UID guardado en localStorage, usarlo
     const uidLocal=localStorage.getItem('lm_uid_'+codigo);
     let uid=uidExistente||uidLocal||null;
-    // Si no tiene UID todavía, usar autenticación anónima de Firebase
+    // Si no tiene UID todavía, generar uno nuevo único
     if(!uid){
+      uid='lm_'+codigo.toLowerCase()+'_'+Date.now().toString(36);
+      // Guardar en Firestore para que sea permanente
       if(window._fb&&window._fb.db){
-        try{
-          const cred=await signInAnonymously(_auth);
-          uid=cred.user.uid;
-          window._fb.setDoc(
-            window._fb.doc(window._fb.db,'codigos_acceso',codigo),
-            {uid,nombre,activo:true},{merge:true}
-          ).catch(()=>{});
-        }catch(e){
-          uid='lm_'+codigo.toLowerCase()+'_'+Date.now().toString(36);
-        }
-      }else{
-        uid='lm_'+codigo.toLowerCase()+'_'+Date.now().toString(36);
+        window._fb.setDoc(
+          window._fb.doc(window._fb.db,'codigos_acceso',codigo),
+          {uid,nombre,activo:true},{merge:true}
+        ).catch(()=>{});
       }
     }
     // Guardar localmente
