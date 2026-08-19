@@ -1974,10 +1974,7 @@ const App={
   },
 
   loginGoogle(){
-    const uid=window._fbUID?window._fbUID.substring(0,8):'NULL';
-    const fb=window._fb?'OK':'NULL';
-    const db=window._fb&&window._fb.db?'OK':'NULL';
-    this.toast('UID:'+uid+' FB:'+fb+' DB:'+db,5000);
+    this.toast('☁️ Sincronizando notas...');
     FB.syncNow(this._notas);
   },
 
@@ -1985,7 +1982,8 @@ const App={
     const el=document.getElementById('nube');
     const m={ok:'☁️',offline:'📵',sync:'⏳',wait:'...',local:'💾'};
     el.textContent=m[st]||'...';
-    el.style.color=st==='offline'?'#ef4444':st==='ok'?'#4ade80':st==='sync'?'#f59e0b':'var(--text3)';
+    el.style.color=st==='offline'?'#ef4444':st==='ok'?'#00ff00':st==='sync'?'#f59e0b':'var(--text3)';
+el.style.textShadow=st==='ok'?'0 0 8px #00ff00':'none';
   },
 
   startMic(campo){
