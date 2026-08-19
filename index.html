@@ -1031,7 +1031,15 @@ const App={
     this._intentos=0;
     document.getElementById('bloqueo').classList.remove('show');
     this.render();
-    if(window._fbUID&&window._fb&&window._fb.db){window._fb.enableNetwork(window._fb.db).catch(()=>{});setTimeout(()=>App.onFbReady(),1500);}
+    // Recuperar UID si se perdió al restaurar la página
+    if(!window._fbUID){
+      const uid=localStorage.getItem('lm_uid_fijo')||localStorage.getItem('lm_uid');
+      if(uid)window._fbUID=uid;
+    }
+    if(window._fbUID&&window._fb&&window._fb.db){
+      window._fb.enableNetwork(window._fb.db).catch(()=>{});
+      setTimeout(()=>App.onFbReady(),1500);
+    }
   },
 
   bloquear(){
