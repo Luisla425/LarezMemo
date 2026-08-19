@@ -1980,7 +1980,7 @@ const App={
 
   setNube(st){
     const el=document.getElementById('nube');
-    const m={ok:'☁️',offline:'📵',sync:'⏳',wait:'...',local:'💾'};
+    const m={ok:'🟢',offline:'📵',sync:'⏳',wait:'⚪',local:'💾'};
     el.textContent=m[st]||'...';
     el.style.color=st==='offline'?'#ef4444':st==='ok'?'#00ff00':st==='sync'?'#f59e0b':'var(--text3)';
 el.style.textShadow=st==='ok'?'0 0 8px #00ff00':'none';
