@@ -1882,15 +1882,23 @@ const App={
     // Si ya tiene UID guardado en localStorage, usarlo
     const uidLocal=localStorage.getItem('lm_uid_'+codigo);
     let uid=uidExistente||uidLocal||null;
-    // Si no tiene UID todavía, generar uno nuevo único
+    // Si no tiene UID todavía, usar autenticación anónima de Firebase
     if(!uid){
-      uid='lm_'+codigo.toLowerCase()+'_'+Date.now().toString(36);
-      // Guardar en Firestore para que sea permanente
       if(window._fb&&window._fb.db){
-        window._fb.setDoc(
-          window._fb.doc(window._fb.db,'codigos_acceso',codigo),
-          {uid,nombre,activo:true},{merge:true}
-        ).catch(()=>{});
+        try{
+          const {getAuth,signInAnonymously}=await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
+          const auth=getAuth();
+          const cred=await signInAnonymously(auth);
+          uid=cred.user.uid;
+          window._fb.setDoc(
+            window._fb.doc(window._fb.db,'codigos_acceso',codigo),
+            {uid,nombre,activo:true},{merge:true}
+          ).catch(()=>{});
+        }catch(e){
+          uid='lm_'+codigo.toLowerCase()+'_'+Date.now().toString(36);
+        }
+      }else{
+        uid='lm_'+codigo.toLowerCase()+'_'+Date.now().toString(36);
       }
     }
     // Guardar localmente
