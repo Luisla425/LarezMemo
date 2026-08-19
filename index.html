@@ -11,18 +11,12 @@
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import{getFirestore,collection,doc,setDoc,getDocs,deleteDoc,getDoc,enableNetwork,disableNetwork}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-import{getAuth,signInAnonymously}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-const _fbAuth=getAuth(fbApp);
-import{getAuth,signInAnonymously}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-const _fbAuth=getAuth(fbApp);
-import{getAuth,signInAnonymously}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-const _fbAuth=getAuth(fbApp);
 const cfg={apiKey:"AIzaSyAmH2fDMCLT6tQVZB6VhuDbkdWJmGZ0OGE",authDomain:"larez-luan-memo.firebaseapp.com",projectId:"larez-luan-memo",storageBucket:"larez-luan-memo.firebasestorage.app",messagingSenderId:"210963014910",appId:"1:210963014910:web:685aa309785c18bb30f1af"};
 const fbApp=initializeApp(cfg);
 const db=getFirestore(fbApp);
 // UID se asigna cuando el usuario entra con su código — no antes
 window._fbUID=null;
-window._fb={db,collection,doc,setDoc,getDocs,deleteDoc,getDoc,enableNetwork,disableNetwork,auth:_fbAuth,signInAnonymously};
+window._fb={db,collection,doc,setDoc,getDocs,deleteDoc,getDoc,enableNetwork,disableNetwork};
 // Avisar a la app cuando Firebase esté listo
 setTimeout(()=>{
   if(window.App&&window._fbUID){
@@ -1888,19 +1882,15 @@ const App={
     // Si ya tiene UID guardado en localStorage, usarlo
     const uidLocal=localStorage.getItem('lm_uid_'+codigo);
     let uid=uidExistente||uidLocal||null;
-    // Si no tiene UID todavía, usar Firebase Auth anónima
+    // Si no tiene UID todavía, generar uno nuevo único
     if(!uid){
-      try{
-        const cred=await signInAnonymously(_fbAuth);
-        uid=cred.user.uid;
-        if(window._fb&&window._fb.db){
-          window._fb.setDoc(
-            window._fb.doc(window._fb.db,'codigos_acceso',codigo),
-            {uid,nombre,activo:true},{merge:true}
-          ).catch(()=>{});
-        }
-      }catch(e){
-        uid='lm_'+codigo.toLowerCase()+'_'+Date.now().toString(36);
+      uid='lm_'+codigo.toLowerCase()+'_'+Date.now().toString(36);
+      // Guardar en Firestore para que sea permanente
+      if(window._fb&&window._fb.db){
+        window._fb.setDoc(
+          window._fb.doc(window._fb.db,'codigos_acceso',codigo),
+          {uid,nombre,activo:true},{merge:true}
+        ).catch(()=>{});
       }
     }
     // Guardar localmente
