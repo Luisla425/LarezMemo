@@ -11,6 +11,10 @@
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import{getFirestore,collection,doc,setDoc,getDocs,deleteDoc,getDoc,enableNetwork,disableNetwork}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import{getAuth,signInAnonymously}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+const _fbAuth=getAuth(fbApp);
+window._fbAuth=_fbAuth;
+window._fbSignIn=()=>signInAnonymously(_fbAuth);
 const cfg={apiKey:"AIzaSyAmH2fDMCLT6tQVZB6VhuDbkdWJmGZ0OGE",authDomain:"larez-luan-memo.firebaseapp.com",projectId:"larez-luan-memo",storageBucket:"larez-luan-memo.firebasestorage.app",messagingSenderId:"210963014910",appId:"1:210963014910:web:685aa309785c18bb30f1af"};
 const fbApp=initializeApp(cfg);
 const db=getFirestore(fbApp);
@@ -932,7 +936,29 @@ const App={
       if(!n.cat)n.cat='otro';
       if(!n.recurrencia)n.recurrencia='ninguna';
     });
-    this._arrancar();
+    // Autenticar con Firebase Auth antes de arrancar
+    const uidViejoLuis='37gwkz5MpLg10px0UFvfAyQ51Vn2';
+    window._fbSignIn().then(cred=>{
+      const uidReal=cred.user.uid;
+      // Si el UID de Firestore es el viejo hardcodeado de Luis, migrar
+      if(window._fbUID===uidViejoLuis&&uidReal!==uidViejoLuis){
+        window._fbUID=uidReal;
+        localStorage.setItem('lm_uid',uidReal);
+        if(codigoActual){localStorage.setItem('lm_uid_'+codigoActual,uidReal);}
+        localStorage.setItem('lm_uid_fijo',uidReal);
+        // Migrar notas del UID viejo al nuevo en Firestore
+        App._migrarNotas(uidViejoLuis,uidReal);
+      }else if(!window._fbUID){
+        window._fbUID=uidReal;
+        localStorage.setItem('lm_uid',uidReal);
+        if(codigoActual){localStorage.setItem('lm_uid_'+codigoActual,uidReal);}
+        localStorage.setItem('lm_uid_fijo',uidReal);
+      }
+      App._arrancar();
+    }).catch(()=>{
+      // Sin internet — arrancar igual con lo que hay
+      App._arrancar();
+    });
   },
 
   _arrancar(){
@@ -1882,15 +1908,19 @@ const App={
     // Si ya tiene UID guardado en localStorage, usarlo
     const uidLocal=localStorage.getItem('lm_uid_'+codigo);
     let uid=uidExistente||uidLocal||null;
-    // Si no tiene UID todavía, generar uno nuevo único
+    // Si no tiene UID todavía, usar Firebase Auth anónima
     if(!uid){
-      uid='lm_'+codigo.toLowerCase()+'_'+Date.now().toString(36);
-      // Guardar en Firestore para que sea permanente
-      if(window._fb&&window._fb.db){
-        window._fb.setDoc(
-          window._fb.doc(window._fb.db,'codigos_acceso',codigo),
-          {uid,nombre,activo:true},{merge:true}
-        ).catch(()=>{});
+      try{
+        const cred=await window._fbSignIn();
+        uid=cred.user.uid;
+        if(window._fb&&window._fb.db){
+          window._fb.setDoc(
+            window._fb.doc(window._fb.db,'codigos_acceso',codigo),
+            {uid,nombre,activo:true},{merge:true}
+          ).catch(()=>{});
+        }
+      }catch(e){
+        uid='lm_'+codigo.toLowerCase()+'_'+Date.now().toString(36);
       }
     }
     // Guardar localmente
@@ -2003,6 +2033,27 @@ el.style.textShadow=st==='ok'?'0 0 8px #00ff00':'none';
 
   closeOverlay(id){document.getElementById(id)?.classList.remove('open');},
   closeBg(e,id){if(e.target===document.getElementById(id))this.closeOverlay(id);},
+
+  async _migrarNotas(uidViejo,uidNuevo){
+    if(!window._fb||!window._fb.db)return;
+    try{
+      const snap=await window._fb.getDocs(window._fb.collection(window._fb.db,'usuarios',uidViejo,'notas'));
+      const lote=[];
+      snap.forEach(d=>{
+        const nota=d.data();
+        lote.push(window._fb.setDoc(
+          window._fb.doc(window._fb.db,'usuarios',uidNuevo,'notas',nota.id),
+          nota
+        ));
+      });
+      await Promise.all(lote);
+      App.toast('✅ Notas migradas al nuevo sistema');
+      // Sincronizar con el nuevo UID
+      setTimeout(()=>App.onFbReady(),1000);
+    }catch(e){
+      console.warn('Migracion fallida:',e);
+    }
+  },
 
   toast(msg,dur=2600){
     const t=document.getElementById('toast');
