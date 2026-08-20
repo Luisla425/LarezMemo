@@ -11,18 +11,26 @@
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import{getFirestore,collection,doc,setDoc,getDocs,deleteDoc,getDoc,enableNetwork,disableNetwork}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import{getAuth,signInAnonymously}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 const cfg={apiKey:"AIzaSyAmH2fDMCLT6tQVZB6VhuDbkdWJmGZ0OGE",authDomain:"larez-luan-memo.firebaseapp.com",projectId:"larez-luan-memo",storageBucket:"larez-luan-memo.firebasestorage.app",messagingSenderId:"210963014910",appId:"1:210963014910:web:685aa309785c18bb30f1af"};
 const fbApp=initializeApp(cfg);
 const db=getFirestore(fbApp);
-// UID se asigna cuando el usuario entra con su código — no antes
+const auth=getAuth(fbApp);
 window._fbUID=null;
 window._fb={db,collection,doc,setDoc,getDocs,deleteDoc,getDoc,enableNetwork,disableNetwork};
-// Avisar a la app cuando Firebase esté listo
-setTimeout(()=>{
-  if(window.App&&window._fbUID){
-    App.onFbReady();
+(async()=>{
+  let uid=null;
+  try{
+    const cred=await signInAnonymously(auth);
+    uid=cred.user.uid;
+  }catch(e){console.warn('Auth fallida:',e);}
+  if(uid)window._fbUIDAuth=uid;
+  for(let i=0;i<100;i++){
+    if(window.App)break;
+    await new Promise(r=>setTimeout(r,50));
   }
-},1500);
+  if(window.App)window.App._fbListo(uid);
+})();
 </script>
 <style>
 :root{
@@ -891,40 +899,19 @@ const App={
   init(){
     this._tema=localStorage.getItem('lm_tema_v6')||'dark';
     document.body.className=this._tema;
-    if(!localStorage.getItem('lm_acceso_ok')){
-      // Usuario nuevo — mostrar pantalla de código primero
+    this._usuarioYaEntro=!!localStorage.getItem('lm_acceso_ok');
+
+    if(!this._usuarioYaEntro){
       this._notas=[];
       document.getElementById('bienvenida').classList.add('show');
       document.getElementById('bienvenida-codigo').onkeydown=e=>{if(e.key==='Enter')this.verificarAcceso();};
       return;
     }
-    // Usuario conocido — recuperar código y UID ANTES de cargar notas
+
     const codigoActual=localStorage.getItem('lm_acceso_codigo');
-    // Buscar UID: primero por código, luego el viejo lm_uid como fallback
-    const uidPorCodigo=codigoActual?localStorage.getItem('lm_uid_'+codigoActual):null;
-    const uidViejo=localStorage.getItem('lm_uid');
-    // Buscar UID en cualquier clave lm_uid_ que exista
-    let uidDeCualquierClave=null;
-    for(let i=0;i<localStorage.length;i++){
-      const k=localStorage.key(i);
-      if(k&&k.startsWith('lm_uid_')&&localStorage.getItem(k)){
-        uidDeCualquierClave=localStorage.getItem(k);
-        break;
-      }
-    }
-    const uidFijo=localStorage.getItem('lm_uid_fijo');
     const codigoFijo=localStorage.getItem('lm_codigo_fijo');
-    if(codigoFijo&&!codigoActual){localStorage.setItem('lm_acceso_codigo',codigoFijo);}
-    const uidGuardado=uidPorCodigo||uidViejo||uidDeCualquierClave||uidFijo||null;
-    if(uidGuardado){
-      window._fbUID=uidGuardado;
-      // Asegurar que lm_uid_CODIGO también esté guardado para futuras sesiones
-      if(codigoActual&&!uidPorCodigo){
-        localStorage.setItem('lm_uid_'+codigoActual,uidGuardado);
-      }
-      localStorage.setItem('lm_uid',uidGuardado);
-    }
-    // Ahora sí cargar notas del usuario correcto
+    if(codigoFijo&&!codigoActual)localStorage.setItem('lm_acceso_codigo',codigoFijo);
+
     this._notas=Storage.load();
     this._notas.forEach(n=>{
       if(!n.estado)n.estado='pendiente';
@@ -932,10 +919,48 @@ const App={
       if(!n.cat)n.cat='otro';
       if(!n.recurrencia)n.recurrencia='ninguna';
     });
-    this._arrancar();
+
+    this._fbTimeout=setTimeout(()=>{
+      if(!this._arrancado){
+        console.warn('Firebase timeout — arrancando sin auth');
+        this._arrancar();
+      }
+    },8000);
+  },
+
+  _fbListo(uidReal){
+    clearTimeout(this._fbTimeout);
+    const uidViejoLuis='37gwkz5MpLg10px0UFvfAyQ51Vn2';
+    const codigoActual=localStorage.getItem('lm_acceso_codigo');
+
+    if(uidReal){
+      window._fbUIDAuth=uidReal;
+      if(this._usuarioYaEntro){
+        const uidGuardado=localStorage.getItem('lm_uid_'+codigoActual)
+          ||localStorage.getItem('lm_uid')
+          ||localStorage.getItem('lm_uid_fijo');
+        window._fbUID=uidReal;
+        localStorage.setItem('lm_uid',uidReal);
+        if(codigoActual)localStorage.setItem('lm_uid_'+codigoActual,uidReal);
+        localStorage.setItem('lm_uid_fijo',uidReal);
+        this._arrancar();
+        if(uidGuardado===uidViejoLuis&&uidReal!==uidViejoLuis){
+          setTimeout(()=>this._migrarNotas(uidViejoLuis,uidReal),2000);
+        }
+      }
+    }else{
+      if(this._usuarioYaEntro){
+        const uid=localStorage.getItem('lm_uid_'+codigoActual)
+          ||localStorage.getItem('lm_uid')
+          ||localStorage.getItem('lm_uid_fijo');
+        if(uid)window._fbUID=uid;
+        this._arrancar();
+      }
+    }
   },
 
   _arrancar(){
+    this._arrancado=true;
     const manualKey='lm_manual_ok_'+(localStorage.getItem('lm_acceso_codigo')||'default');
     // Verificar también que no haya notas del manual ya en la lista (doble protección)
     const yaHayManual=this._notas.some(n=>n.cat==='manual');
@@ -1879,31 +1904,37 @@ const App={
   },
 
   _procesarEntrada(codigo,nombre,uidExistente){
-    // Si ya tiene UID guardado en localStorage, usarlo
+    const uidViejoLuis='37gwkz5MpLg10px0UFvfAyQ51Vn2';
+    const uidAuth=window._fbUIDAuth||null;
     const uidLocal=localStorage.getItem('lm_uid_'+codigo);
-    let uid=uidExistente||uidLocal||null;
-    // Si no tiene UID todavía, generar uno nuevo único
-    if(!uid){
+
+    let uid;
+    if(uidAuth){
+      uid=uidAuth;
+    }else if(uidExistente&&uidExistente!==uidViejoLuis){
+      uid=uidExistente;
+    }else if(uidLocal&&uidLocal!==uidViejoLuis){
+      uid=uidLocal;
+    }else{
       uid='lm_'+codigo.toLowerCase()+'_'+Date.now().toString(36);
-      // Guardar en Firestore para que sea permanente
-      if(window._fb&&window._fb.db){
-        window._fb.setDoc(
-          window._fb.doc(window._fb.db,'codigos_acceso',codigo),
-          {uid,nombre,activo:true},{merge:true}
-        ).catch(()=>{});
-      }
     }
-    // Guardar localmente
+
     localStorage.setItem('lm_uid_'+codigo,uid);
     localStorage.setItem('lm_acceso_ok','1');
     localStorage.setItem('lm_acceso_nombre',nombre);
     localStorage.setItem('lm_acceso_codigo',codigo);
-    // Asignar UID global — AHORA sí sincroniza con el UID correcto
+    localStorage.setItem('lm_codigo_fijo',codigo);
     window._fbUID=uid;
     localStorage.setItem('lm_uid',uid);
     localStorage.setItem('lm_uid_fijo',uid);
-    localStorage.setItem('lm_codigo_fijo',codigo);
-    // Cargar notas del usuario AHORA que ya tenemos su Storage key correcta
+
+    if(window._fb&&window._fb.db){
+      window._fb.setDoc(
+        window._fb.doc(window._fb.db,'codigos_acceso',codigo),
+        {uid,nombre,activo:true},{merge:true}
+      ).catch(()=>{});
+    }
+
     this._notas=Storage.load();
     this._notas.forEach(n=>{
       if(!n.estado)n.estado='pendiente';
@@ -1911,15 +1942,21 @@ const App={
       if(!n.cat)n.cat='otro';
       if(!n.recurrencia)n.recurrencia='ninguna';
     });
-    // Si ya hay notas del manual en storage, marcar para no duplicar
+
     const _manualKey='lm_manual_ok_'+(codigo||'default');
-    const _notasActuales=Storage.load();
-    if(_notasActuales.some(n=>n.cat==='manual')){
+    if(this._notas.some(n=>n.cat==='manual')){
       localStorage.setItem(_manualKey,'1');
     }
+
     document.getElementById('bienvenida').classList.remove('show');
+    this._usuarioYaEntro=true;
     this._arrancar();
-    // Sincronizar con Firebase usando el UID correcto del usuario
+
+    // Fix bug migracion: si Luis entra con historial borrado, migrar notas
+    if(uidAuth&&uidExistente===uidViejoLuis&&uidAuth!==uidViejoLuis){
+      setTimeout(()=>this._migrarNotas(uidViejoLuis,uidAuth),2000);
+    }
+
     setTimeout(()=>this.onFbReady(),500);
   },
 
@@ -2003,6 +2040,26 @@ el.style.textShadow=st==='ok'?'0 0 8px #00ff00':'none';
 
   closeOverlay(id){document.getElementById(id)?.classList.remove('open');},
   closeBg(e,id){if(e.target===document.getElementById(id))this.closeOverlay(id);},
+
+  async _migrarNotas(uidViejo,uidNuevo){
+    if(!window._fb||!window._fb.db)return;
+    try{
+      const snap=await window._fb.getDocs(
+        window._fb.collection(window._fb.db,'usuarios',uidViejo,'notas')
+      );
+      if(snap.empty)return;
+      const lote=[];
+      snap.forEach(d=>{
+        const nota=d.data();
+        lote.push(window._fb.setDoc(
+          window._fb.doc(window._fb.db,'usuarios',uidNuevo,'notas',nota.id),nota
+        ));
+      });
+      await Promise.all(lote);
+      this.toast('✅ Notas migradas al nuevo sistema');
+      setTimeout(()=>this.onFbReady(),1000);
+    }catch(e){console.warn('Migracion fallida:',e);}
+  },
 
   toast(msg,dur=2600){
     const t=document.getElementById('toast');
