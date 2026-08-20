@@ -2055,8 +2055,18 @@ el.style.textShadow=st==='ok'?'0 0 8px #00ff00':'none';
           window._fb.doc(window._fb.db,'usuarios',uidNuevo,'notas',nota.id),nota
         ));
       });
+      // Migrar plantillas tambien
+      const psnap=await window._fb.getDocs(
+        window._fb.collection(window._fb.db,'usuarios',uidViejo,'plantillas')
+      );
+      psnap.forEach(d=>{
+        const p=d.data();
+        lote.push(window._fb.setDoc(
+          window._fb.doc(window._fb.db,'usuarios',uidNuevo,'plantillas',p.id),p
+        ));
+      });
       await Promise.all(lote);
-      this.toast('✅ Notas migradas al nuevo sistema');
+      this.toast('✅ Notas y plantillas migradas');
       setTimeout(()=>this.onFbReady(),1000);
     }catch(e){console.warn('Migracion fallida:',e);}
   },
