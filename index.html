@@ -1905,18 +1905,24 @@ const App={
 
   _procesarEntrada(codigo,nombre,uidExistente){
     const uidViejoLuis='37gwkz5MpLg10px0UFvfAyQ51Vn2';
-    const uidAuth=window._fbUIDAuth||null;
     const uidLocal=localStorage.getItem('lm_uid_'+codigo);
 
     let uid;
-    if(uidAuth){
-      uid=uidAuth;
-    }else if(uidExistente&&uidExistente!==uidViejoLuis){
+    // El UID viene del codigo — nunca del dispositivo ni de Firebase Auth
+    // Orden de prioridad:
+    // 1) UID guardado en Firestore para este codigo (viene como uidExistente)
+    // 2) UID guardado en localStorage para este codigo
+    // 3) Generar uno nuevo unico basado en el codigo
+    if(uidExistente&&uidExistente!==uidViejoLuis){
+      // Codigo ya registrado en Firestore — usar su UID
       uid=uidExistente;
     }else if(uidLocal&&uidLocal!==uidViejoLuis){
+      // Codigo ya usado en este dispositivo — usar su UID local
       uid=uidLocal;
     }else{
-      uid='lm_'+codigo.toLowerCase()+'_'+Date.now().toString(36);
+      // Codigo nuevo — generar UID unico basado en el codigo
+      // Usamos el codigo + random para que sea unico y no dependa del dispositivo
+      uid='lm_'+codigo.toLowerCase()+'_'+Math.random().toString(36).slice(2,10)+Date.now().toString(36);
     }
 
     localStorage.setItem('lm_uid_'+codigo,uid);
