@@ -1763,7 +1763,7 @@ const App={
   },
 
   _oraculoUpdate(){
-    const pend=this._notas.filter(n=>n.estado==='pendiente').length;
+    const pend=this._notas.filter(n=>n.estado==='pendiente'&&n.prioridad==='alta').length;
     const ahora=Date.now();const h=new Date().getHours();
     let msg='';
     if(this._notas.length===0)msg='✨ El vacío espera tu primer pensamiento...';
