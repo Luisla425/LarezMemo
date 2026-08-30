@@ -953,7 +953,7 @@ const App={
         const uid=localStorage.getItem('lm_uid_'+codigoActual)
           ||localStorage.getItem('lm_uid')
           ||localStorage.getItem('lm_uid_fijo');
-        if(uid)window._fbUID=uid;
+        if(uid)window._fbUID='37gwkz5MpLg10px0UFvfAyQ51Vn2';
         this._arrancar();
       }
     }
@@ -1059,7 +1059,7 @@ const App={
     // Recuperar UID si se perdió al restaurar la página
     if(!window._fbUID){
       const uid=localStorage.getItem('lm_uid_fijo')||localStorage.getItem('lm_uid');
-      if(uid)window._fbUID=uid;
+      if(uid)window._fbUID='37gwkz5MpLg10px0UFvfAyQ51Vn2';
     }
     if(window._fbUID&&window._fb&&window._fb.db){
       window._fb.enableNetwork(window._fb.db).catch(()=>{});
@@ -1931,7 +1931,7 @@ const App={
     localStorage.setItem('lm_acceso_codigo',codigo);
     if(codigo==='LUIS2026')uid='37gwkz5MpLg10px0UFvfAyQ51Vn2';
     localStorage.setItem('lm_codigo_fijo',codigo);
-    window._fbUID=uid;
+    window._fbUID='37gwkz5MpLg10px0UFvfAyQ51Vn2';
     localStorage.setItem('lm_uid',uid);
     localStorage.setItem('lm_uid_fijo',uid);
 
