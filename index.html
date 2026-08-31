@@ -679,7 +679,7 @@ const FB={
       const nuevas=cloud.filter(n=>!lids.has(n.id)&&n.estado!=='expirada');
       const merged=[...local,...nuevas].sort((a,b)=>b.ts-a.ts);
       merged.forEach(n=>{if(!n.estado)n.estado='pendiente';});
-      if(merged.length>local.length||cloud.length>0){
+      if(true){
         Storage.save(merged);App._notas=merged;App.render();
       }
       const cids=new Set(cloud.map(n=>n.id));
