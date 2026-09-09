@@ -1682,35 +1682,7 @@ const App={
     this._tmplActual=t;
     document.getElementById('tmpl-form-title').textContent=t.nombre;
     const cont=document.getElementById('tmpl-campos');
-    const tieneRepetir=t.texto.includes('<!-- REPETIR -->');
-    this._tmplReps=0;
-    let camposExtra=[];
-    if(tieneRepetir){
-      const bloqueMatch=t.texto.match(/<!-- REPETIR -->([\s\S]*?)<!-- FIN -->/);
-      const n=parseInt(prompt('\u00bfCu\u00e1ntos bloques?','3'));
-      if(!n||n<1)return;
-      this._tmplReps=n;
-      const campoBloq=[...(bloqueMatch?bloqueMatch[1]:'').matchAll(/\[([\w]+[^[\]]*?)\]/g)].map(m=>m[1]);
-      for(let i=1;i<=n;i++)campoBloq.forEach(c=>camposExtra.push(c+'_'+i));
-    }
-    const camposBase=t.campos.filter(c=>{
-      if(!tieneRepetir)return true;
-      const bloqueMatch=t.texto.match(/<!-- REPETIR -->([\s\S]*?)<!-- FIN -->/);
-      const bloqueTxt=bloqueMatch?bloqueMatch[1]:'';
-      return!bloqueTxt.includes('['+c+']');
-    });
-    const todosCampos=[...camposBase,...camposExtra];
-    cont.innerHTML=todosCampos.map(c=>{
-      const partes=c.split('|');
-      const nombre=partes[0].trim();
-      const opciones=partes.slice(1);
-      const idCampo='tc-'+c.replace(/\s+/g,'_');
-      if(opciones.length>0){
-        const opts=opciones.map(o=>'<option value="'+o+'">'+o+'</option>').join('');
-        return '<div class="campo-row">'+'<span class="campo-lbl">['+nombre+']</span>'+'<select class="finput" id="'+idCampo+'" style="flex:1;"><option value="">-- elegir --</option>'+opts+'</select>'+'</div>';
-      }
-      return '<div class="campo-row">'+'<span class="campo-lbl">['+nombre+']</span>'+'<input class="finput" id="'+idCampo+'" placeholder="'+nombre+'" style="flex:1;">'+'</div>';
-    }).join('');
+    cont.innerHTML=t.campos.map(c=>'<div class="campo-row">'+'<span class="campo-lbl">['+c+']</span>'+'<input class="finput" id="tc-'+c.replace(/\s+/g,'_')+'" placeholder="'+c+'" style="flex:1;">'+'</div>').join('');
     this.closeOverlay('ov-plantillas');
     document.getElementById('ov-tmpl-form').classList.add('open');
   },
@@ -1719,19 +1691,7 @@ const App={
     if(!this._tmplActual)return;
     const t=this._tmplActual;
     let txt=t.texto;
-    if(this._tmplReps>0){
-      const bloqueMatch=txt.match(/<!-- REPETIR -->([\s\S]*?)<!-- FIN -->/);
-      if(bloqueMatch){
-        const bloqueTpl=bloqueMatch[1];
-        let expandido='';
-        for(let i=1;i<=this._tmplReps;i++){
-          expandido+=bloqueTpl.replace(/\[([\w]+[^[\]]*?)\]/g,(m,c)=>'['+c+'_'+i+']');
-        }
-        txt=txt.replace(/<!-- REPETIR -->[\s\S]*?<!-- FIN -->/,expandido);
-      }
-    }
-    const camposFinales=[...txt.matchAll(/\[([\w]+[^[\]]*?)\]/g)].map(m=>m[1]);
-    camposFinales.forEach(c=>{
+    t.campos.forEach(c=>{
       const inp=document.getElementById('tc-'+c.replace(/\s+/g,'_'));
       if(inp&&inp.value)txt=txt.replace(new RegExp('\\['+c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\]','g'),inp.value);
     });
@@ -1792,20 +1752,14 @@ const App={
     document.getElementById('tmpl-nombre').value=t.nombre;
     document.getElementById('tmpl-texto').value=t.texto;
     document.getElementById('tmpl-campos-preview').textContent='Campos: '+t.campos.map(c=>'['+c+']').join(' ');
-    this.closeOverlay('ov-plantillas-mgr');
-    setTimeout(()=>{this.openPlantillasMgr();},150);
     this.toast('Editando: '+t.nombre);
   },
 
   borrarPlantilla(id){
-    if(!confirm('\u00bfBorrar esta plantilla?'))return;
+    if(!confirm('¿Borrar esta plantilla?'))return;
     Plantillas.remove(id);
     this._renderMgrLista();
     this.toast('Plantilla borrada');
-    if(window._fb&&window._fbUID){
-      const ref=window._fb.doc(window._fb.db,'usuarios',window._fbUID,'plantillas',id);
-      window._fb.deleteDoc(ref).catch(e=>console.warn('Error borrando plantilla Firestore:',e));
-    }
   },
 
   _oraculoUpdate(){
