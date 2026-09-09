@@ -1682,7 +1682,39 @@ const App={
     this._tmplActual=t;
     document.getElementById('tmpl-form-title').textContent=t.nombre;
     const cont=document.getElementById('tmpl-campos');
-    cont.innerHTML=t.campos.map(c=>'<div class="campo-row">'+'<span class="campo-lbl">['+c+']</span>'+'<input class="finput" id="tc-'+c.replace(/\s+/g,'_')+'" placeholder="'+c+'" style="flex:1;">'+'</div>').join('');
+    const tieneRepetir=t.texto.includes('<!-- REPETIR -->');
+    this._tmplReps=0;
+    var camposExtra=[];
+    if(tieneRepetir){
+      var bloqueMatch=t.texto.match(/<!-- REPETIR -->([\s\S]*?)<!-- FIN -->/);
+      var n=parseInt(prompt('¿Cuántos bloques?','3'));
+      if(!n||n<1)return;
+      this._tmplReps=n;
+      var campoBloq=[...(bloqueMatch?bloqueMatch[1]:'').matchAll(/\[([^|\]]+)(?:\|[^\]]+)?\]/g)].map(function(m){return m[1].trim();});
+      for(var i=1;i<=n;i++)campoBloq.forEach(function(c){camposExtra.push(c+'_'+i);});
+    }
+    var camposBase=t.campos.filter(function(c){
+      if(!tieneRepetir)return true;
+      var bm=t.texto.match(/<!-- REPETIR -->([\s\S]*?)<!-- FIN -->/);
+      var bt=bm?bm[1]:'';
+      return bt.indexOf('['+c+']')===-1&&bt.indexOf('['+c+'|')===-1;
+    });
+    var todosCampos=[...camposBase,...camposExtra];
+    var bloqueTexto=tieneRepetir?(t.texto.match(/<!-- REPETIR -->([\s\S]*?)<!-- FIN -->/)||['',''])[1]:'';
+    cont.innerHTML=todosCampos.map(function(c){
+      var nombreBase=c.replace(/_\d+$/,'');
+      var opcionesMatch=bloqueTexto.match(new RegExp('\\['+nombreBase+'(\\|[^\\]]+)?\\]'));
+      var opciones=[];
+      if(opcionesMatch&&opcionesMatch[1]){opciones=opcionesMatch[1].slice(1).split('|');}
+      if(!opciones.length){var dirMatch=t.texto.match(new RegExp('\\['+c+'(\\|[^\\]]+)?\\]'));if(dirMatch&&dirMatch[1]){opciones=dirMatch[1].slice(1).split('|');}}
+      var idCampo='tc-'+c.replace(/\s+/g,'_');
+      var label=c;
+      if(opciones.length>0){
+        var opts=opciones.map(function(o){return'<option value="'+o+'">'+o+'</option>';}).join('');
+        return'<div class="campo-row">'+'<span class="campo-lbl">['+label+']</span>'+'<select class="finput" id="'+idCampo+'" style="flex:1;"><option value="">-- elegir --</option>'+opts+'</select>'+'</div>';
+      }
+      return'<div class="campo-row">'+'<span class="campo-lbl">['+label+']</span>'+'<input class="finput" id="'+idCampo+'" placeholder="'+nombreBase+'" style="flex:1;">'+'</div>';
+    }).join('');
     this.closeOverlay('ov-plantillas');
     document.getElementById('ov-tmpl-form').classList.add('open');
   },
@@ -1691,8 +1723,20 @@ const App={
     if(!this._tmplActual)return;
     const t=this._tmplActual;
     let txt=t.texto;
-    t.campos.forEach(c=>{
-      const inp=document.getElementById('tc-'+c.replace(/\s+/g,'_'));
+    if(this._tmplReps>0){
+      var bloqueMatch=txt.match(/<!-- REPETIR -->([\s\S]*?)<!-- FIN -->/);
+      if(bloqueMatch){
+        var bloqueTpl=bloqueMatch[1];
+        var expandido='';
+        for(var i=1;i<=this._tmplReps;i++){
+          expandido+=bloqueTpl.replace(/\[([^|\]]+)(?:\|[^\]]+)?\]/g,function(m,c){return'['+c.trim()+'_'+i+']';});
+        }
+        txt=txt.replace(/<!-- REPETIR -->[\s\S]*?<!-- FIN -->/,expandido);
+      }
+    }
+    var camposFinales=[...txt.matchAll(/\[([^\]]+)\]/g)].map(function(m){return m[1];});
+    camposFinales.forEach(function(c){
+      var inp=document.getElementById('tc-'+c.replace(/\s+/g,'_'));
       if(inp&&inp.value)txt=txt.replace(new RegExp('\\['+c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\]','g'),inp.value);
     });
     const all=Plantillas.getAll();
@@ -1752,6 +1796,8 @@ const App={
     document.getElementById('tmpl-nombre').value=t.nombre;
     document.getElementById('tmpl-texto').value=t.texto;
     document.getElementById('tmpl-campos-preview').textContent='Campos: '+t.campos.map(c=>'['+c+']').join(' ');
+    this.closeOverlay('ov-plantillas-mgr');
+    setTimeout(()=>{this.openPlantillasMgr();},150);
     this.toast('Editando: '+t.nombre);
   },
 
@@ -1760,6 +1806,10 @@ const App={
     Plantillas.remove(id);
     this._renderMgrLista();
     this.toast('Plantilla borrada');
+    if(window._fb&&window._fbUID){
+      const ref=window._fb.doc(window._fb.db,'usuarios',window._fbUID,'plantillas',id);
+      window._fb.deleteDoc(ref).catch(e=>console.warn('Error borrando plantilla Firestore:',e));
+    }
   },
 
   _oraculoUpdate(){
