@@ -1700,7 +1700,17 @@ const App={
       return!bloqueTxt.includes('['+c+']');
     });
     const todosCampos=[...camposBase,...camposExtra];
-    cont.innerHTML=todosCampos.map(c=>'<div class="campo-row">'+'<span class="campo-lbl">['+c+']</span>'+'<input class="finput" id="tc-'+c.replace(/\s+/g,'_')+'" placeholder="'+c+'" style="flex:1;">'+'</div>').join('');
+    cont.innerHTML=todosCampos.map(c=>{
+      const partes=c.split('|');
+      const nombre=partes[0].trim();
+      const opciones=partes.slice(1);
+      const idCampo='tc-'+c.replace(/\s+/g,'_');
+      if(opciones.length>0){
+        const opts=opciones.map(o=>'<option value="'+o+'">'+o+'</option>').join('');
+        return '<div class="campo-row">'+'<span class="campo-lbl">['+nombre+']</span>'+'<select class="finput" id="'+idCampo+'" style="flex:1;"><option value="">-- elegir --</option>'+opts+'</select>'+'</div>';
+      }
+      return '<div class="campo-row">'+'<span class="campo-lbl">['+nombre+']</span>'+'<input class="finput" id="'+idCampo+'" placeholder="'+nombre+'" style="flex:1;">'+'</div>';
+    }).join('');
     this.closeOverlay('ov-plantillas');
     document.getElementById('ov-tmpl-form').classList.add('open');
   },
