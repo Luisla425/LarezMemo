@@ -1682,7 +1682,25 @@ const App={
     this._tmplActual=t;
     document.getElementById('tmpl-form-title').textContent=t.nombre;
     const cont=document.getElementById('tmpl-campos');
-    cont.innerHTML=t.campos.map(c=>'<div class="campo-row">'+'<span class="campo-lbl">['+c+']</span>'+'<input class="finput" id="tc-'+c.replace(/\s+/g,'_')+'" placeholder="'+c+'" style="flex:1;">'+'</div>').join('');
+    const tieneRepetir=t.texto.includes('<!-- REPETIR -->');
+    this._tmplReps=0;
+    let camposExtra=[];
+    if(tieneRepetir){
+      const bloqueMatch=t.texto.match(/<!-- REPETIR -->([\s\S]*?)<!-- FIN -->/);
+      const n=parseInt(prompt('\u00bfCu\u00e1ntos bloques?','3'));
+      if(!n||n<1)return;
+      this._tmplReps=n;
+      const campoBloq=[...(bloqueMatch?bloqueMatch[1]:'').matchAll(/\[([\w]+[^[\]]*?)\]/g)].map(m=>m[1]);
+      for(let i=1;i<=n;i++)campoBloq.forEach(c=>camposExtra.push(c+'_'+i));
+    }
+    const camposBase=t.campos.filter(c=>{
+      if(!tieneRepetir)return true;
+      const bloqueMatch=t.texto.match(/<!-- REPETIR -->([\s\S]*?)<!-- FIN -->/);
+      const bloqueTxt=bloqueMatch?bloqueMatch[1]:'';
+      return!bloqueTxt.includes('['+c+']');
+    });
+    const todosCampos=[...camposBase,...camposExtra];
+    cont.innerHTML=todosCampos.map(c=>'<div class="campo-row">'+'<span class="campo-lbl">['+c+']</span>'+'<input class="finput" id="tc-'+c.replace(/\s+/g,'_')+'" placeholder="'+c+'" style="flex:1;">'+'</div>').join('');
     this.closeOverlay('ov-plantillas');
     document.getElementById('ov-tmpl-form').classList.add('open');
   },
@@ -1691,7 +1709,19 @@ const App={
     if(!this._tmplActual)return;
     const t=this._tmplActual;
     let txt=t.texto;
-    t.campos.forEach(c=>{
+    if(this._tmplReps>0){
+      const bloqueMatch=txt.match(/<!-- REPETIR -->([\s\S]*?)<!-- FIN -->/);
+      if(bloqueMatch){
+        const bloqueTpl=bloqueMatch[1];
+        let expandido='';
+        for(let i=1;i<=this._tmplReps;i++){
+          expandido+=bloqueTpl.replace(/\[([\w]+[^[\]]*?)\]/g,(m,c)=>'['+c+'_'+i+']');
+        }
+        txt=txt.replace(/<!-- REPETIR -->[\s\S]*?<!-- FIN -->/,expandido);
+      }
+    }
+    const camposFinales=[...txt.matchAll(/\[([\w]+[^[\]]*?)\]/g)].map(m=>m[1]);
+    camposFinales.forEach(c=>{
       const inp=document.getElementById('tc-'+c.replace(/\s+/g,'_'));
       if(inp&&inp.value)txt=txt.replace(new RegExp('\\['+c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\]','g'),inp.value);
     });
