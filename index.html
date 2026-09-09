@@ -1782,14 +1782,20 @@ const App={
     document.getElementById('tmpl-nombre').value=t.nombre;
     document.getElementById('tmpl-texto').value=t.texto;
     document.getElementById('tmpl-campos-preview').textContent='Campos: '+t.campos.map(c=>'['+c+']').join(' ');
+    this.closeOverlay('ov-plantillas-mgr');
+    setTimeout(()=>{this.openPlantillasMgr();},150);
     this.toast('Editando: '+t.nombre);
   },
 
   borrarPlantilla(id){
-    if(!confirm('¿Borrar esta plantilla?'))return;
+    if(!confirm('\u00bfBorrar esta plantilla?'))return;
     Plantillas.remove(id);
     this._renderMgrLista();
     this.toast('Plantilla borrada');
+    if(window._fb&&window._fbUID){
+      const ref=window._fb.doc(window._fb.db,'usuarios',window._fbUID,'plantillas',id);
+      window._fb.deleteDoc(ref).catch(e=>console.warn('Error borrando plantilla Firestore:',e));
+    }
   },
 
   _oraculoUpdate(){
