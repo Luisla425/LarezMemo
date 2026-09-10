@@ -1793,12 +1793,13 @@ const App={
   editarPlantilla(id){
     const t=Plantillas.getAll().find(x=>x.id===id);if(!t)return;
     this._tmplEditId=id;
-    document.getElementById('tmpl-nombre').value=t.nombre;
-    document.getElementById('tmpl-texto').value=t.texto;
-    document.getElementById('tmpl-campos-preview').textContent='Campos: '+t.campos.map(c=>'['+c+']').join(' ');
-    this.closeOverlay('ov-plantillas-mgr');
-    setTimeout(()=>{this.openPlantillasMgr();},150);
-    this.toast('Editando: '+t.nombre);
+    this.openPlantillasMgr();
+    setTimeout(()=>{
+      document.getElementById('tmpl-nombre').value=t.nombre;
+      document.getElementById('tmpl-texto').value=t.texto;
+      document.getElementById('tmpl-campos-preview').textContent='Campos: '+t.campos.map(c=>'['+c+']').join(' ');
+      this.toast('Editando: '+t.nombre);
+    },200);
   },
 
   borrarPlantilla(id){
