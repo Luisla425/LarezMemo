@@ -987,6 +987,7 @@ const App={
     }
     this.renderCatsStrip();
     this.render();
+    this._initNotificaciones();
     this._checkRespaldo();
     this.setNube('wait');
     if(window._fbUID){
@@ -2125,6 +2126,40 @@ el.style.textShadow=st==='ok'?'0 0 8px #00ff00':'none';
       this.toast('✅ Notas y plantillas migradas');
       setTimeout(()=>this.onFbReady(),1000);
     }catch(e){console.warn('Migracion fallida:',e);}
+  },
+
+  _initNotificaciones(){
+    if(!('Notification' in window))return;
+    if(Notification.permission==='default'){
+      Notification.requestPermission();
+    }
+    this._checkNotificaciones();
+    setInterval(()=>this._checkNotificaciones(),30*60*1000);
+  },
+
+  _checkNotificaciones(){
+    if(Notification.permission!=='granted')return;
+    const ahora=Date.now();
+    const en24h=ahora+24*60*60*1000;
+    const notificadas=JSON.parse(localStorage.getItem('lm_notif_enviadas')||'{}');
+    this._notas.forEach(n=>{
+      if(!n.venceTs||n.estado==='completada')return;
+      if(n.venceTs<ahora||n.venceTs>en24h)return;
+      if(notificadas[n.id])return;
+      const dif=n.venceTs-ahora;
+      const horas=Math.floor(dif/3600000);
+      const mins=Math.floor((dif%3600000)/60000);
+      const cuando=horas>0?'en '+horas+'h '+mins+'min':'en '+mins+' min';
+      new Notification('⏰ LÁREZ MEMO',{
+        body:n.titulo+'
+Vence '+cuando,
+        icon:'icon-192.png',
+        badge:'icon-192.png',
+        tag:n.id
+      });
+      notificadas[n.id]=ahora;
+      localStorage.setItem('lm_notif_enviadas',JSON.stringify(notificadas));
+    });
   },
 
   toast(msg,dur=2600){
