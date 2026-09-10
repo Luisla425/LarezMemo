@@ -1796,7 +1796,7 @@ const App={
     document.getElementById('tmpl-nombre').value=t.nombre;
     document.getElementById('tmpl-texto').value=t.texto;
     document.getElementById('tmpl-campos-preview').textContent='Campos: '+t.campos.map(c=>'['+c+']').join(' ');
-    document.getElementById('ov-plantillas-mgr').scrollTop=0;
+    document.getElementById('tmpl-nombre').scrollIntoView({behavior:'smooth',block:'start'});
     this.toast('Editando: '+t.nombre);
   },
 
