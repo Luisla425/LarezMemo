@@ -2151,8 +2151,7 @@ el.style.textShadow=st==='ok'?'0 0 8px #00ff00':'none';
       const mins=Math.floor((dif%3600000)/60000);
       const cuando=horas>0?'en '+horas+'h '+mins+'min':'en '+mins+' min';
       new Notification('⏰ LÁREZ MEMO',{
-        body:n.titulo+'
-Vence '+cuando,
+        body:n.titulo+'\nVence '+cuando,
         icon:'icon-192.png',
         badge:'icon-192.png',
         tag:n.id
