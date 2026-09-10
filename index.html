@@ -2162,12 +2162,21 @@ el.style.textShadow=st==='ok'?'0 0 8px #00ff00':'none';
       let cuando='';
       if(dif<=0){cuando='ahora mismo';}
       else{const mins=Math.floor(dif/60000);cuando='en '+mins+' min';}
-      new Notification('⏰ LÁREZ MEMO',{
-        body:n.titulo+'\nVence '+cuando,
-        icon:'icon-192.png',
-        badge:'icon-192.png',
-        tag:n.id
-      });
+      if(navigator.serviceWorker&&navigator.serviceWorker.controller){
+        navigator.serviceWorker.controller.postMessage({
+          type:'SHOW_NOTIF',
+          title:'⏰ LÁREZ MEMO',
+          body:n.titulo+'\nVence '+cuando,
+          tag:n.id
+        });
+      }else{
+        new Notification('⏰ LÁREZ MEMO',{
+          body:n.titulo+'\nVence '+cuando,
+          icon:'icon-192.png',
+          badge:'icon-192.png',
+          tag:n.id
+        });
+      }
       notificadas[clave]=ahora;
       localStorage.setItem('lm_notif_enviadas',JSON.stringify(notificadas));
     });
