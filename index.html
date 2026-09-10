@@ -466,6 +466,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);min-height:100
       <button class="opt-btn" onclick="App.openCalendario()"><span class="opt-ico">📅</span><div><div class="opt-ttl">Calendario</div><div class="opt-sub">Tus notas en el tiempo</div></div></button>
       <button class="opt-btn" onclick="App.gestionarPIN()"><span class="opt-ico">🔒</span><div><div class="opt-ttl">PIN de seguridad</div><div class="opt-sub">Protege tus notas privadas</div></div></button>
       <button class="opt-btn" onclick="App.exportar()"><span class="opt-ico">📤</span><div><div class="opt-ttl">Exportar respaldo</div><div class="opt-sub">Guarda en WA o Drive</div></div></button>
+      <button class="opt-btn" onclick="App.pedirPermisosNotif()"><span class="opt-ico">🔔</span><div><div class="opt-ttl">Activar notificaciones</div><div class="opt-sub">Recibe alertas de vencimiento</div></div></button>
       <button class="opt-btn" onclick="document.getElementById('file-import').click()"><span class="opt-ico">📥</span><div><div class="opt-ttl">Importar respaldo</div><div class="opt-sub">Restaura desde archivo</div></div></button>
       <button class="opt-btn" onclick="App.compartirApp()"><span class="opt-ico">📲</span><div><div class="opt-ttl">Compartir app</div><div class="opt-sub">Envía el link por WhatsApp</div></div></button>
       <button class="opt-btn" onclick="App.ciclarTema()"><span class="opt-ico" id="tema-ico">🌙</span><div><div class="opt-ttl" id="tema-lbl">Cambiar tema</div><div class="opt-sub">Dark → Light → Neon</div></div></button>
@@ -2126,6 +2127,16 @@ el.style.textShadow=st==='ok'?'0 0 8px #00ff00':'none';
       this.toast('✅ Notas y plantillas migradas');
       setTimeout(()=>this.onFbReady(),1000);
     }catch(e){console.warn('Migracion fallida:',e);}
+  },
+
+  pedirPermisosNotif(){
+    if(!('Notification' in window)){this.toast('Tu navegador no soporta notificaciones');return;}
+    if(Notification.permission==='granted'){this.toast('✅ Notificaciones ya activadas');this._checkNotificaciones();return;}
+    Notification.requestPermission().then(p=>{
+      if(p==='granted'){this.toast('✅ Notificaciones activadas');this._checkNotificaciones();}
+      else{this.toast('❌ Permiso denegado — actívalo en ajustes del navegador');}
+    });
+    this.closeOverlay('ov-opciones');
   },
 
   _initNotificaciones(){
